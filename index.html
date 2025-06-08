@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur d'Automates Finis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 5px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .tab.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+        }
+
+        .form-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .states-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .state-tag {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .state-tag .remove {
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.8;
+        }
+
+        .state-tag .remove:hover {
+            opacity: 1;
+        }
+
+        .transitions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .transition-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .transition-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .transition-card.selected {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #495057);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #dc3545, #fd7e14);
+        }
+
+        .result-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 25px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 5px solid #28a745;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 5px solid #dc3545;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 5px solid #ffc107;
+        }
+
+        .test-list {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .test-item:last-child {
+            border-bottom: none;
+        }
+
+        .visualization {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+            min-height: 300px;
+            border: 2px dashed #e9ecef;
+            text-align: center;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 10px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .step.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .step.completed {
+            background: #28a745;
+            color: white;
+        }
+
+        .step::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 100%;
+            width: 20px;
+            height: 2px;
+            background: #e9ecef;
+            transform: translateY(-50%);
+        }
+
+        .step:last-child::after {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1> Bonjour Masse! </h1>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Simulateur d'Automates Finis</h1>
+            <p>Créez, testez et analysez vos automates finis déterministes et non-déterministes</p>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step active" id="step1">1</div>
+            <div class="step" id="step2">2</div>
+            <div class="step" id="step3">3</div>
+            <div class="step" id="step4">4</div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('creation')">📝 Création</div>
+            <div class="tab" onclick="showTab('transitions')">🔄 Transitions</div>
+            <div class="tab" onclick="showTab('test')">🧪 Tests</div>
+            <div class="tab" onclick="showTab('analysis')">📊 Analyse</div>
+        </div>
+
+        <!-- Onglet Création -->
+        <div id="creation" class="tab-content active">
+            <div class="form-section">
+                <h3>🎯 Configuration de base</h3>
+                <div class="input-group">
+                    <label for="alphabet">Alphabet (ex: ab, abc, 012)</label>
+                    <input type="text" id="alphabet" placeholder="Entrez l'alphabet">
+                </div>
+                <div class="input-group">
+                    <label for="nbStates">Nombre d'états</label>
+                    <input type="number" id="nbStates" min="1" max="20" placeholder="Ex: 3">
+                </div>
+                <button class="btn" onclick="generateStates()">Générer les états</button>
+            </div>
+
+            <div class="form-section" id="statesSection" style="display: none;">
+                <h3>🏁 États initiaux et finaux</h3>
+                <div class="input-group">
+                    <label>États initiaux</label>
+                    <div id="initialStates" class="states-container"></div>
+                </div>
+                <div class="input-group">
+                    <label>États finaux</label>
+                    <div id="finalStates" class="states-container"></div>
+                </div>
+                <button class="btn btn-success" onclick="nextStep()">Configurer les transitions</button>
+            </div>
+        </div>
+
+        <!-- Onglet Transitions -->
+        <div id="transitions" class="tab-content">
+            <div class="form-section">
+                <h3>🔄 Sélection des transitions</h3>
+                <p>Cliquez sur les transitions que vous souhaitez activer</p>
+                <div id="transitionsGrid" class="transitions-grid"></div>
+                <button class="btn btn-success" onclick="saveAutomaton()">Enregistrer l'automate</button>
+            </div>
+        </div>
+
+        <!-- Onglet Tests -->
+        <div id="test" class="tab-content">
+            <div class="form-section">
+                <h3>🧪 Tests de mots</h3>
+                <div class="input-group">
+                    <label for="testWord">Mot à tester</label>
+                    <input type="text" id="testWord" placeholder="Ex: aaba">
+                </div>
+                <button class="btn" onclick="addTestWord()">Ajouter au test</button>
+                <button class="btn btn-success" onclick="runAllTests()">Lancer tous les tests</button>
+            </div>
+
+            <div class="test-list" id="testList">
+                <h4>📋 Liste des tests</h4>
+                <div id="testItems"></div>
+            </div>
+        </div>
+
+        <!-- Onglet Analyse -->
+        <div id="analysis" class="tab-content">
+            <div class="form-section">
+                <h3>📊 Analyse de l'automate</h3>
+                <button class="btn" onclick="analyzeAutomaton()">Analyser</button>
+                <button class="btn btn-secondary" onclick="visualizeAutomaton()">Visualiser</button>
+                <button class="btn btn-success" onclick="determinizeNFA()">Déterminiser (AFN → AFD)</button>
+            </div>
+
+            <div id="analysisResults" class="result-section"></div>
+            <div id="visualization" class="visualization">
+                <p>🎨 La visualisation de l'automate apparaîtra ici</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let currentAutomaton = {
+            alphabet: '',
+            states: [],
+            initialStates: [],
+            finalStates: [],
+            transitions: {},
+            testWords: []
+        };
+
+        let currentStep = 1;
+
+        // Gestion des onglets
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // Génération des états
+        function generateStates() {
+            const alphabet = document.getElementById('alphabet').value.trim();
+            const nbStates = parseInt(document.getElementById('nbStates').value);
+
+            if (!alphabet || !nbStates) {
+                alert('⚠️ Veuillez remplir l\'alphabet et le nombre d\'états');
+                return;
+            }
+
+            currentAutomaton.alphabet = alphabet;
+            currentAutomaton.states = Array.from({length: nbStates}, (_, i) => i);
+
+            // Génération des boutons d'états
+            generateStateButtons('initialStates', 'initial');
+            generateStateButtons('finalStates', 'final');
+
+            document.getElementById('statesSection').style.display = 'block';
+            updateStep(2);
+        }
+
+        function generateStateButtons(containerId, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            currentAutomaton.states.forEach(state => {
+                const button = document.createElement('div');
+                button.className = 'state-tag';
+                button.style.cursor = 'pointer';
+                button.style.opacity = '0.6';
+                button.innerHTML = `q${state} <span class="toggle">+</span>`;
+                
+                button.onclick = () => toggleState(state, type, button);
+                container.appendChild(button);
+            });
+        }
+
+        function toggleState(state, type, button) {
+            const isSelected = button.style.opacity === '1';
+            const targetArray = type === 'initial' ? currentAutomaton.initialStates : currentAutomaton.finalStates;
+
+            if (isSelected) {
+                // Retirer l'état
+                const index = targetArray.indexOf(state);
+                if (index > -1) targetArray.splice(index, 1);
+                button.style.opacity = '0.6';
+                button.querySelector('.toggle').textContent = '+';
+            } else {
+                // Ajouter l'état
+                targetArray.push(state);
+                button.style.opacity = '1';
+                button.querySelector('.toggle').textContent = '✓';
+            }
+        }
+
+        function nextStep() {
+            if (currentAutomaton.initialStates.length === 0) {
+                alert('⚠️ Veuillez sélectionner au moins un état initial');
+                return;
+            }
+            if (currentAutomaton.finalStates.length === 0) {
+                alert('⚠️ Veuillez sélectionner au moins un état final');
+                return;
+            }
+
+            generateTransitionsGrid();
+            showTab('transitions');
+            updateStep(3);
+        }
+
+        function generateTransitionsGrid() {
+            const grid = document.getElementById('transitionsGrid');
+            grid.innerHTML = '';
+
+            currentAutomaton.states.forEach(from => {
+                currentAutomaton.alphabet.split('').forEach(symbol => {
+                    currentAutomaton.states.forEach(to => {
+                        const card = document.createElement('div');
+                        card.className = 'transition-card';
+                        card.innerHTML = `
+                            <strong>q${from} --${symbol}--> q${to}</strong>
+                        `;
+                        card.onclick = () => toggleTransition(from, symbol, to, card);
+                        grid.appendChild(card);
+                    });
+                });
+            });
+        }
+
+        function toggleTransition(from, symbol, to, card) {
+            const key = `${from}-${symbol}`;
+            if (!currentAutomaton.transitions[key]) {
+                currentAutomaton.transitions[key] = [];
+            }
+
+            const index = currentAutomaton.transitions[key].indexOf(to);
+            if (index > -1) {
+                currentAutomaton.transitions[key].splice(index, 1);
+                card.classList.remove('selected');
+            } else {
+                currentAutomaton.transitions[key].push(to);
+                card.classList.add('selected');
+            }
+        }
+
+        async function saveAutomaton() {
+            // Envoi des données au backend C
+            try {
+                const response = await fetch('/api/save-automaton', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(currentAutomaton)
+                });
+
+                if (response.ok) {
+                    showAlert('✅ Automate enregistré avec succès!', 'success');
+                    updateStep(4);
+                    showTab('test');
+                } else {
+                    showAlert('❌ Erreur lors de l\'enregistrement', 'danger');
+                }
+            } catch (error) {
+                showAlert('❌ Erreur de connexion au serveur', 'danger');
+            }
+        }
+
+        function addTestWord() {
+            const word = document.getElementById('testWord').value.trim();
+            if (!word) return;
+
+            if (!currentAutomaton.testWords.includes(word)) {
+                currentAutomaton.testWords.push(word);
+                updateTestList();
+            }
+
+            document.getElementById('testWord').value = '';
+        }
+
+        function updateTestList() {
+            const container = document.getElementById('testItems');
+            container.innerHTML = '';
+
+            currentAutomaton.testWords.forEach((word, index) => {
+                const item = document.createElement('div');
+                item.className = 'test-item';
+                item.innerHTML = `
+                    <span><strong>"${word}"</strong></span>
+                    <div>
+                        <button class="btn" onclick="testSingleWord('${word}', ${index})">Tester</button>
+                        <button class="btn btn-danger" onclick="removeTestWord(${index})">Supprimer</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function testSingleWord(word, index) {
+            try {
+                const response = await fetch('/api/test-word', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ word: word })
+                });
+
+                const result = await response.json();
+                displayTestResult(word, result, index);
+            } catch (error) {
+                showAlert('❌ Erreur lors du test', 'danger');
+            }
+        }
+
+        async function runAllTests() {
+            document.getElementById('analysisResults').innerHTML = '<div class="loading"></div><p>Tests en cours...</p>';
+            
+            try {
+                const response = await fetch('/api/test-all-words', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ words: currentAutomaton.testWords })
+                });
+
+                const results = await response.json();
+                displayAllTestResults(results);
+            } catch (error) {
+                showAlert('❌ Erreur lors des tests', 'danger');
+            }
+        }
+
+        async function analyzeAutomaton() {
+            try {
+                const response = await fetch('/api/analyze-automaton', {
+                    method: 'GET'
+                });
+
+                const analysis = await response.json();
+                displayAnalysis(analysis);
+            } catch (error) {
+                showAlert('❌ Erreur lors de l\'analyse', 'danger');
+            }
+        }
+
+        function displayAnalysis(analysis) {
+            const container = document.getElementById('analysisResults');
+            let html = '<h4>📊 Résultats de l\'analyse</h4>';
+
+            if (analysis.isDFA) {
+                html += '<div class="alert alert-success">✅ Cet automate est un AFD (Automate Fini Déterministe)</div>';
+            } else {
+                html += '<div class="alert alert-warning">⚠️ Cet automate est un AFN (Automate Fini Non-déterministe)</div>';
+                html += '<div class="alert alert-warning">';
+                html += '<strong>Raisons:</strong><ul>';
+                analysis.reasons.forEach(reason => {
+                    html += `<li>${reason}</li>`;
+                });
+                html += '</ul></div>';
+                html += '<button class="btn btn-success" onclick="determinizeNFA()">🔄 Déterminiser automatiquement</button>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        async function determinizeNFA() {
+            try {
+                const response = await fetch('/api/determinize', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('✅ AFN déterminisé avec succès!', 'success');
+                    // Mettre à jour l'automate courant avec la version déterminisée
+                    currentAutomaton = result.determinizedAutomaton;
+                    regenerateInterface();
+                } else {
+                    showAlert('❌ Erreur lors de la déterminisation', 'danger');
+                }
+            } catch (error) {
+                showAlert('❌ Erreur de connexion', 'danger');
+            }
+        }
+
+        function displayTestResult(word, result, index) {
+            const item = document.querySelectorAll('.test-item')[index];
+            const resultDiv = item.querySelector('.result') || document.createElement('div');
+            resultDiv.className = 'result';
+            
+            if (result.accepted) {
+                resultDiv.innerHTML = `<span style="color: green;">✅ Accepté</span>`;
+            } else {
+                resultDiv.innerHTML = `<span style="color: red;">❌ Rejeté</span>`;
+            }
+            
+            if (!item.querySelector('.result')) {
+                item.appendChild(resultDiv);
+            }
+        }
+
+        function removeTestWord(index) {
+            currentAutomaton.testWords.splice(index, 1);
+            updateTestList();
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            document.querySelector('.container').prepend(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function updateStep(step) {
+            document.querySelectorAll('.step').forEach((s, i) => {
+                s.classList.remove('active', 'completed');
+                if (i + 1 < step) s.classList.add('completed');
+                else if (i + 1 === step) s.classList.add('active');
+            });
+            currentStep = step;
+        }
+
+        function visualizeAutomaton() {
+            const viz = document.getElementById('visualization');
+            viz.innerHTML = `
+                <div class="loading"></div>
+                <p>Génération de la visualisation...</p>
+            `;
+            
+            // Simuler la génération d'une visualisation
+            setTimeout(() => {
+                viz.innerHTML = `
+                    <h4>🎨 Visualisation de l'automate</h4>
+                    <p>États: ${currentAutomaton.states.length}</p>
+                    <p>États initiaux: ${currentAutomaton.initialStates.join(', ')}</p>
+                    <p>États finaux: ${currentAutomaton.finalStates.join(', ')}</p>
+                    <p>Alphabet: ${currentAutomaton.alphabet}</p>
+                    <p>Transitions: ${Object.keys(currentAutomaton.transitions).length}</p>
+                `;
+            }, 2000);
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStep(1);
+        });
+    </script>
+</body>
+</html>
