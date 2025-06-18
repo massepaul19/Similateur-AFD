@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contactez-Nous - Salford & MSNLM Sarl</title>
+    <link rel="stylesheet" href="style2.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script>
+        function showMessage(event) {
+            event.preventDefault(); // Empêche la soumission réelle du formulaire
+
+            // Récupération des valeurs des champs
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+
+            // Affichage du message de confirmation
+            const confirmation = document.getElementById('confirmation-message');
+            confirmation.style.display = 'block';
+            confirmation.innerText = `Merci, ${name}. Votre message a été envoyé avec succès.`;
+
+            // Nettoyage des champs
+            document.getElementById('name').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('message').value = '';
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <h1 class="text-center">Contactez-Nous</h1>
+    </header>
+    <main class="container mt-4">
+        <section class="contact-form">
+            <h2>Nous envoyer un message</h2>
+            <form class="mt-4" onsubmit="showMessage(event)">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Nom</label>
+                    <input type="text" id="name" class="form-control" placeholder="Votre nom" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" id="email" class="form-control" placeholder="Votre email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="message" class="form-label">Message</label>
+                    <textarea id="message" class="form-control" rows="5" placeholder="Votre message" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Envoyer</button>
+            </form>
+            <div id="confirmation-message" class="alert alert-success mt-3" style="display: none;">
+                Votre message a été envoyé avec succès.
+            </div>
+        </section>
+        <section class="mt-5">
+            <h2>Nos Coordonnées</h2>
+            <ul>
+                <li><strong>Email :</strong> support@salford-msnlm.com</li>
+                <li><strong>Téléphone :</strong> +237 123 456 789</li>
+                <li><strong>Adresse :</strong> 123, Avenue Principale, Douala, Cameroun</li>
+            </ul>
+        </section>
+    </main>
+    <footer class="bg-dark text-white text-center py-3">
+        <p>&copy; 2024 Salford & MSNLM Sarl. Tous droits réservés.</p>
+        <a href="../index.html" class="btn btn-outline-light">Retour à l'accueil</a>
+    </footer>
+</body>
+</html>

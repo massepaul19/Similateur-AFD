@@ -3,450 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulateur d'Automates Finis</title>
-    <link rel="stylesheet" href="static/style.css">
-    
+    <title>Simulateur d'Automates Finis - Accueil</title>
+    <link rel="stylesheet" href="static/style_ok.css">
+
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🤖 Simulateur d'Automates Finis</h1>
-            <p>Créez, testez et analysez vos automates finis déterministes et non-déterministes</p>
+    <header class="header">
+        <div class="nav-container">
+            <nav class="nav-menu">
+                <a href="#accueil" class="nav-link">🏠 Accueil</a>
+                <a href="options/equipe.html" class="nav-link">👥 Notre équipe</a>
+                <a href="options/idee.html" class="nav-link">💡 Idée du projet</a>
+                <a href="options/travail.html" class="nav-link">🛠️ Notre Travail</a>
+                <a href="options/contact.html" class="nav-link">📞 Contacter Nous</a>
+                <a href="enregistrer/simulator.html" class="nav-link register-btn">✨ Enregistrer un automate</a>
+            </nav>
         </div>
+    </header>
 
-        <div class="step-indicator">
-            <div class="step active" id="step1">1</div>
-            <div class="step" id="step2">2</div>
-            <div class="step" id="step3">3</div>
-            <div class="step" id="step4">4</div>
-        </div>
-
-        <div class="tabs">
-            <div class="tab active" onclick="showTab('creation')">📝 Création</div>
-            <div class="tab" onclick="showTab('transitions')">🔄 Transitions</div>
-            <div class="tab" onclick="showTab('test')">🧪 Tests</div>
-            <div class="tab" onclick="showTab('analysis')">📊 Analyse</div>
-            <div class="tab" onclick="showTab('analysis')">Autres Tests</div>
-        </div>
-
-        <!-- Onglet Création -->
-        <div id="creation" class="tab-content active">
-            <div class="form-section">
-                <h3>🎯 Configuration de base</h3>
-                <div class="input-group">
-                    <label for="alphabet">Alphabet (ex: ab, abc, 012)</label>
-                    <input type="text" id="alphabet" placeholder="Entrez l'alphabet">
-                </div>
-                <div class="input-group">
-                    <label for="nbStates">Nombre d'états</label>
-                    <input type="number" id="nbStates" min="1" max="20" placeholder="Ex: 3">
-                </div>
-                <button class="btn" onclick="generateStates()">Générer les états</button>
-            </div>
-
-            <div class="form-section" id="statesSection" style="display: none;">
-                <h3>🏁 États initiaux et finaux</h3>
-                <div class="input-group">
-                    <label>États initiaux</label>
-                    <div id="initialStates" class="states-container"></div>
-                </div>
-                <div class="input-group">
-                    <label>États finaux</label>
-                    <div id="finalStates" class="states-container"></div>
-                </div>
-                <button class="btn btn-success" onclick="nextStep()">Configurer les transitions</button>
-            </div>
-        </div>
-
-        <!-- Onglet Transitions -->
-        <div id="transitions" class="tab-content">
-            <div class="form-section">
-                <h3>🔄 Sélection des transitions</h3>
-                <p>Cliquez sur les transitions que vous souhaitez activer</p>
-                <div id="transitionsGrid" class="transitions-grid"></div>
-                <button class="btn btn-success" onclick="saveAutomaton()">Enregistrer l'automate</button>
-            </div>
-        </div>
-
-        <!-- Onglet Tests -->
-        <div id="test" class="tab-content">
-            <div class="form-section">
-                <h3>🧪 Tests de mots</h3>
-                <div class="input-group">
-                    <label for="testWord">Mot à tester</label>
-                    <input type="text" id="testWord" placeholder="Ex: aaba">
-                </div>
-                <button class="btn" onclick="addTestWord()">Ajouter au test</button>
-                <button class="btn btn-success" onclick="runAllTests()">Lancer tous les tests</button>
-            </div>
-
-            <div class="test-list" id="testList">
-                <h4>📋 Liste des tests</h4>
-                <div id="testItems"></div>
-            </div>
-        </div>
-
-        <!-- Onglet Analyse -->
-        <div id="analysis" class="tab-content">
-            <div class="form-section">
-                <h3>📊 Analyse de l'automate</h3>
-                <button class="btn" onclick="analyzeAutomaton()">Analyser</button>
-                <button class="btn btn-secondary" onclick="visualizeAutomaton()">Visualiser</button>
-            </div>
-	    
-	    <div class="form-section">
-                <h3> 🧪 Autres Fonctions sur l'automate</h3>
-                <button class="btn btn-success" onclick="determinizeNFA()">Déterminiser (AFN → AFD)</button>
-                <button class="btn btn-success" onclick="determinizeNFA()">Minimisation d'un Automate </button>
-                <button class="btn btn-success" onclick="determinizeNFA()">Déterminiser (AFN → AFD)</button>
-                <button class="btn btn-success" onclick="determinizeNFA()">algorithme de Glushkov</button>
-                <button class="btn btn-success" onclick="determinizeNFA()">déterminiser
-l'expression régulière</button>
-            </div>
-            
-            <div id="analysisResults" class="result-section"></div>
-            <div id="visualization" class="visualization">
-                <p>🎨 La visualisation de l'automate apparaîtra ici</p>
-            </div>    
-        </div>
+    <!-- Contenu de démonstration -->
+    <div class="demo-content">
+        <h1 class="demo-title">🤖 Simulateur d'Automates Finis</h1>
+        <p class="demo-subtitle">
+            Notre plateforme révolutionnaire vous permet de manipuler tous types d'automates finis : 
+                déterministes, non-déterministes, avec epsilon-transitions. Découvrez les algorithmes 
+                classiques de la théorie des langages formels à travers une expérience utilisateur 
+                exceptionnelle. De la construction de Thompson à la minimisation, explorez l'univers 
+                fascinant des automates et des expressions régulières.
+        </p>
+        <a href="options/idee.html" class="cta-button">
+                🚀 Découvrir notre vision
+            </a>
     </div>
 
-    <script>
-        // Variables globales
-        let currentAutomaton = {
-            alphabet: '',
-            states: [],
-            initialStates: [],
-            finalStates: [],
-            transitions: {},
-            testWords: []
-        };
+    <main>
 
-        let currentStep = 1;
+        <section class="operations-section">
+            <div class="operations-container">
+                <h2 class="section-title">🛠️ Nos Opérations</h2>
+                <p class="section-subtitle">
+                    Une suite complète d'outils pour manipuler et analyser vos automates
+                </p>
 
-        // Gestion des onglets
-        function showTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            document.getElementById(tabName).classList.add('active');
-        }
+                <div class="operations-grid">
+                    <!-- Colonne Gauche (Impairs) -->
+                    <div class="operation-column">
+                        <h3 class="column-title">🎨 Opérations Fondamentales</h3>
+                        
+                        <div class="operation-item" onclick="window.location.href='menus/systeme-equations.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">1</span>Résolution de système d'équations
+                            </div>
+                            <div class="operation-desc">
+                                Résolvez des systèmes d'équations et obtenez l'expression régulière correspondante
+                            </div>
+                        </div>
 
-        // Génération des états
-        function generateStates() {
-            const alphabet = document.getElementById('alphabet').value.trim();
-            const nbStates = parseInt(document.getElementById('nbStates').value);
+                        <div class="operation-item" onclick="window.location.href='menus/extraction-regex.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">3</span>Extraction d'expression régulière
+                            </div>
+                            <div class="operation-desc">
+                                Générez l'expression régulière équivalente à partir d'un automate (AFN ou AFD)
+                            </div>
+                        </div>
 
-            if (!alphabet || !nbStates) {
-                alert('⚠️ Veuillez remplir l\'alphabet et le nombre d\'états');
-                return;
-            }
+                        <div class="operation-item" onclick="window.location.href='menus/identification-etats.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">5</span>Identification et émondage des états
+                            </div>
+                            <div class="operation-desc">
+                                Identifiez les états accessibles, co-accessibles et utiles, puis émondez l'automate
+                            </div>
+                        </div>
 
-            currentAutomaton.alphabet = alphabet;
-            currentAutomaton.states = Array.from({length: nbStates}, (_, i) => i);
+                        <div class="operation-item" onclick="window.location.href='menus/conversion-epsilon.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">7</span>Conversion AFN ↔ epsilon-AFN
+                            </div>
+                            <div class="operation-desc">
+                                Convertissez entre automates non-déterministes et epsilon-AFN dans les deux sens
+                            </div>
+                        </div>
 
-            // Génération des boutons d'états
-            generateStateButtons('initialStates', 'initial');
-            generateStateButtons('finalStates', 'final');
+                        <div class="operation-item" onclick="window.location.href='menus/epsilon-afd.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">9</span>Conversion epsilon-AFN → AFD
+                            </div>
+                            <div class="operation-desc">
+                                Transformez un epsilon-AFN en AFD en utilisant la méthode des epsilon-fermetures
+                            </div>
+                        </div>
 
-            document.getElementById('statesSection').style.display = 'block';
-            updateStep(2);
-        }
+                        <div class="operation-item" onclick="window.location.href='menus/thompson.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">11</span>Construction de Thompson
+                            </div>
+                            <div class="operation-desc">
+                                Générez un epsilon-AFN à partir d'une expression régulière selon l'algorithme de Thompson
+                            </div>
+                        </div>
 
-        function generateStateButtons(containerId, type) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
+                        <div class="operation-item" onclick="window.location.href='menus/gloushkov.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">13</span>Algorithme de Gloushkov
+                            </div>
+                            <div class="operation-desc">
+                                Construisez un automate directement à partir d'une expression régulière
+                            </div>
+                        </div>
 
-            currentAutomaton.states.forEach(state => {
-                const button = document.createElement('div');
-                button.className = 'state-tag';
-                button.style.cursor = 'pointer';
-                button.style.opacity = '0.6';
-                button.innerHTML = `q${state} <span class="toggle">+</span>`;
-                
-                button.onclick = () => toggleState(state, type, button);
-                container.appendChild(button);
-            });
-        }
-
-        function toggleState(state, type, button) {
-            const isSelected = button.style.opacity === '1';
-            const targetArray = type === 'initial' ? currentAutomaton.initialStates : currentAutomaton.finalStates;
-
-            if (isSelected) {
-                // Retirer l'état
-                const index = targetArray.indexOf(state);
-                if (index > -1) targetArray.splice(index, 1);
-                button.style.opacity = '0.6';
-                button.querySelector('.toggle').textContent = '+';
-            } else {
-                // Ajouter l'état
-                targetArray.push(state);
-                button.style.opacity = '1';
-                button.querySelector('.toggle').textContent = '✓';
-            }
-        }
-
-        function nextStep() {
-            if (currentAutomaton.initialStates.length === 0) {
-                alert('⚠️ Veuillez sélectionner au moins un état initial');
-                return;
-            }
-            if (currentAutomaton.finalStates.length === 0) {
-                alert('⚠️ Veuillez sélectionner au moins un état final');
-                return;
-            }
-
-            generateTransitionsGrid();
-            showTab('transitions');
-            updateStep(3);
-        }
-
-        function generateTransitionsGrid() {
-            const grid = document.getElementById('transitionsGrid');
-            grid.innerHTML = '';
-
-            currentAutomaton.states.forEach(from => {
-                currentAutomaton.alphabet.split('').forEach(symbol => {
-                    currentAutomaton.states.forEach(to => {
-                        const card = document.createElement('div');
-                        card.className = 'transition-card';
-                        card.innerHTML = `
-                            <strong>q${from} --${symbol}--> q${to}</strong>
-                        `;
-                        card.onclick = () => toggleTransition(from, symbol, to, card);
-                        grid.appendChild(card);
-                    });
-                });
-            });
-        }
-
-        function toggleTransition(from, symbol, to, card) {
-            const key = `${from}-${symbol}`;
-            if (!currentAutomaton.transitions[key]) {
-                currentAutomaton.transitions[key] = [];
-            }
-
-            const index = currentAutomaton.transitions[key].indexOf(to);
-            if (index > -1) {
-                currentAutomaton.transitions[key].splice(index, 1);
-                card.classList.remove('selected');
-            } else {
-                currentAutomaton.transitions[key].push(to);
-                card.classList.add('selected');
-            }
-        }
-
-        async function saveAutomaton() {
-            // Envoi des données au backend C
-            try {
-                const response = await fetch('/api/save-automaton', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(currentAutomaton)
-                });
-
-                if (response.ok) {
-                    showAlert('✅ Automate enregistré avec succès!', 'success');
-                    updateStep(4);
-                    showTab('test');
-                } else {
-                    showAlert('❌ Erreur lors de l\'enregistrement', 'danger');
-                }
-            } catch (error) {
-                showAlert('❌ Erreur de connexion au serveur', 'danger');
-            }
-        }
-
-        function addTestWord() {
-            const word = document.getElementById('testWord').value.trim();
-            if (!word) return;
-
-            if (!currentAutomaton.testWords.includes(word)) {
-                currentAutomaton.testWords.push(word);
-                updateTestList();
-            }
-
-            document.getElementById('testWord').value = '';
-        }
-
-        function updateTestList() {
-            const container = document.getElementById('testItems');
-            container.innerHTML = '';
-
-            currentAutomaton.testWords.forEach((word, index) => {
-                const item = document.createElement('div');
-                item.className = 'test-item';
-                item.innerHTML = `
-                    <span><strong>"${word}"</strong></span>
-                    <div>
-                        <button class="btn" onclick="testSingleWord('${word}', ${index})">Tester</button>
-                        <button class="btn btn-danger" onclick="removeTestWord(${index})">Supprimer</button>
+                        <div class="operation-item" onclick="window.location.href='menus/operations-cloture.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">15</span>Opérations de clôture
+                            </div>
+                            <div class="operation-desc">
+                                Union, intersection, complémentation, concaténation d'automates
+                            </div>
+                        </div>
                     </div>
-                `;
-                container.appendChild(item);
-            });
-        }
 
-        async function testSingleWord(word, index) {
-            try {
-                const response = await fetch('/api/test-word', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ word: word })
-                });
+                    <!-- Colonne Droite (Pairs) -->
+                    <div class="operation-column">
+                        <h3 class="column-title">⚙️ Transformations Avancées</h3>
 
-                const result = await response.json();
-                displayTestResult(word, result, index);
-            } catch (error) {
-                showAlert('❌ Erreur lors du test', 'danger');
-            }
-        }
+                        <div class="operation-item" onclick="window.location.href='menus/afn-afd.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">2</span>Conversion AFN → AFD
+                            </div>
+                            <div class="operation-desc">
+                                Implémentez l'algorithme de déterminisation pour convertir un AFN en AFD
+                            </div>
+                        </div>
 
-        async function runAllTests() {
-            document.getElementById('analysisResults').innerHTML = '<div class="loading"></div><p>Tests en cours...</p>';
+                        <div class="operation-item" onclick="window.location.href='menus/afd-afdc.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">4</span>Conversion AFD → AFDC
+                            </div>
+                            <div class="operation-desc">
+                                Complétez un AFD en ajoutant les transitions manquantes vers un état puits
+                            </div>
+                        </div>
+
+                        <div class="operation-item" onclick="window.location.href='menus/afd-afn.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">6</span>Conversion AFD → AFN
+                            </div>
+                            <div class="operation-desc">
+                                Conversion triviale mais utile pour la modularité du système
+                            </div>
+                        </div>
+
+                        <div class="operation-item" onclick="window.location.href='menus/epsilon-fermetures.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">8</span>Calcul des epsilon-fermetures
+                            </div>
+                            <div class="operation-desc">
+                                Calculez et affichez la epsilon-fermeture pour chaque état d'un epsilon-AFN
+                            </div>
+                        </div>
+
+                        <div class="operation-item" onclick="window.location.href='menus/afd-epsilon.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">10</span>Conversion AFD → epsilon-AFN
+                            </div>
+                            <div class="operation-desc">
+                                Transformez un AFD en epsilon-AFN pour la complétude du système
+                            </div>
+                        </div>
+
+                        <div class="operation-item" onclick="window.location.href='menus/minimisation.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">12</span>Minimisation d'automate
+                            </div>
+                            <div class="operation-desc">
+                                Appliquez l'algorithme de minimisation pour obtenir l'AFD minimal équivalent
+                            </div>
+                        </div>
+
+                        <div class="operation-item" onclick="window.location.href='menus/canonisation.html'">
+                            <div class="operation-title">
+                                <span class="operation-number">14</span>Canonisation d'automate
+                            </div>
+                            <div class="operation-desc">
+                                Transformez votre automate en forme canonique pour la comparaison
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Effet de parallax subtil sur le header
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const header = document.querySelector('.header');
             
-            try {
-                const response = await fetch('/api/test-all-words', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ words: currentAutomaton.testWords })
-                });
-
-                const results = await response.json();
-                displayAllTestResults(results);
-            } catch (error) {
-                showAlert('❌ Erreur lors des tests', 'danger');
-            }
-        }
-
-        async function analyzeAutomaton() {
-            try {
-                const response = await fetch('/api/analyze-automaton', {
-                    method: 'GET'
-                });
-
-                const analysis = await response.json();
-                displayAnalysis(analysis);
-            } catch (error) {
-                showAlert('❌ Erreur lors de l\'analyse', 'danger');
-            }
-        }
-
-        function displayAnalysis(analysis) {
-            const container = document.getElementById('analysisResults');
-            let html = '<h4>📊 Résultats de l\'analyse</h4>';
-
-            if (analysis.isDFA) {
-                html += '<div class="alert alert-success">✅ Cet automate est un AFD (Automate Fini Déterministe)</div>';
+            if (scrolled > 0) {
+                header.style.transform = `translateY(${scrolled * 0.1}px)`;
             } else {
-                html += '<div class="alert alert-warning">⚠️ Cet automate est un AFN (Automate Fini Non-déterministe)</div>';
-                html += '<div class="alert alert-warning">';
-                html += '<strong>Raisons:</strong><ul>';
-                analysis.reasons.forEach(reason => {
-                    html += `<li>${reason}</li>`;
-                });
-                html += '</ul></div>';
-                html += '<button class="btn btn-success" onclick="determinizeNFA()">🔄 Déterminiser automatiquement</button>';
+                header.style.transform = 'translateY(0)';
             }
-
-            container.innerHTML = html;
-        }
-
-        async function determinizeNFA() {
-            try {
-                const response = await fetch('/api/determinize', {
-                    method: 'POST'
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    showAlert('✅ AFN déterminisé avec succès!', 'success');
-                    // Mettre à jour l'automate courant avec la version déterminisée
-                    currentAutomaton = result.determinizedAutomaton;
-                    regenerateInterface();
-                } else {
-                    showAlert('❌ Erreur lors de la déterminisation', 'danger');
-                }
-            } catch (error) {
-                showAlert('❌ Erreur de connexion', 'danger');
-            }
-        }
-
-        function displayTestResult(word, result, index) {
-            const item = document.querySelectorAll('.test-item')[index];
-            const resultDiv = item.querySelector('.result') || document.createElement('div');
-            resultDiv.className = 'result';
-            
-            if (result.accepted) {
-                resultDiv.innerHTML = `<span style="color: green;">✅ Accepté</span>`;
-            } else {
-                resultDiv.innerHTML = `<span style="color: red;">❌ Rejeté</span>`;
-            }
-            
-            if (!item.querySelector('.result')) {
-                item.appendChild(resultDiv);
-            }
-        }
-
-        function removeTestWord(index) {
-            currentAutomaton.testWords.splice(index, 1);
-            updateTestList();
-        }
-
-        function showAlert(message, type) {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
-            
-            document.querySelector('.container').prepend(alertDiv);
-            
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
-        }
-
-        function updateStep(step) {
-            document.querySelectorAll('.step').forEach((s, i) => {
-                s.classList.remove('active', 'completed');
-                if (i + 1 < step) s.classList.add('completed');
-                else if (i + 1 === step) s.classList.add('active');
-            });
-            currentStep = step;
-        }
-
-        function visualizeAutomaton() {
-            const viz = document.getElementById('visualization');
-            viz.innerHTML = `
-                <div class="loading"></div>
-                <p>Génération de la visualisation...</p>
-            `;
-            
-            // Simuler la génération d'une visualisation
-            setTimeout(() => {
-                viz.innerHTML = `
-                    <h4>🎨 Visualisation de l'automate</h4>
-                    <p>États: ${currentAutomaton.states.length}</p>
-                    <p>États initiaux: ${currentAutomaton.initialStates.join(', ')}</p>
-                    <p>États finaux: ${currentAutomaton.finalStates.join(', ')}</p>
-                    <p>Alphabet: ${currentAutomaton.alphabet}</p>
-                    <p>Transitions: ${Object.keys(currentAutomaton.transitions).length}</p>
-                `;
-            }, 2000);
-        }
-
-        // Initialisation
-        document.addEventListener('DOMContentLoaded', function() {
-            updateStep(1);
         });
+
+        // Animation au chargement
+        document.addEventListener('DOMContentLoaded', () => {
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach((link, index) => {
+                link.style.opacity = '0';
+                link.style.transform = 'translateY(-20px)';
+                
+                setTimeout(() => {
+                    link.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+                    link.style.opacity = '1';
+                    link.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+
+        // Effet de ripple au clic
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.style.position = 'absolute';
+                ripple.style.borderRadius = '50%';
+                ripple.style.background = 'rgba(255, 255, 255, 0.3)';
+                ripple.style.transform = 'scale(0)';
+                ripple.style.animation = 'ripple 0.6s linear';
+                ripple.style.pointerEvents = 'none';
+                
+                this.appendChild(ripple);
+                
+                setTimeout(() => {
+                    ripple.remove();
+                }, 600);
+            });
+        });
+
+        // CSS pour l'animation ripple
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(2);
+                    opacity: 0;
+                }
+            }
+            .nav-link {
+                position: relative;
+                overflow: hidden;
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
