@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Résolution d'équations d'automates</title>
+    <link rel="stylesheet" href="static/style_equations.css">
+    
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Résolution d'équations d'automates</h1>
+            <p>Générateur d'équations et résolveur par le lemme d'Arden</p>
+        </div>
+
+        <!-- Onglets -->
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('creation')">1. Créer Automate</button>
+            <button class="tab" onclick="showTab('equations')">2. Équations</button>
+            <button class="tab" onclick="showTab('manual')">3. Équations Manuelles</button>
+            <button class="tab" onclick="showTab('solutions')">4. Solutions</button>
+        </div>
+
+        <div class="content">
+            <!-- Onglet Création d'automate -->
+            <div id="creation" class="tab-content active">
+                <div class="form-section">
+                    <h3>🎯 Configuration de base</h3>
+                    <div class="input-group">
+                        <label for="alphabet">Alphabet (ex: ab, abc, 012)</label>
+                        <input type="text" id="alphabet" placeholder="Entrez l'alphabet">
+                    </div>
+                    <div class="input-group">
+                        <label for="nbStates">Nombre d'états</label>
+                        <input type="number" id="nbStates" min="1" max="20" placeholder="Ex: 3">
+                    </div>
+                    <button class="btn" onclick="generateStates()">Générer les états</button>
+                </div>
+
+                <div class="form-section hidden" id="statesSection">
+                    <h3>🏁 États initiaux et finaux</h3>
+                    <div class="input-group">
+                        <label>États initiaux</label>
+                        <div id="initialStates" class="states-container"></div>
+                    </div>
+                    <div class="input-group">
+                        <label>États finaux</label>
+                        <div id="finalStates" class="states-container"></div>
+                    </div>
+                    <button class="btn btn-success" onclick="showTransitions()">Configurer les transitions</button>
+                </div>
+
+                <div class="form-section hidden" id="transitionsSection">
+                    <h3>🔄 Configuration des transitions</h3>
+                    <p>Cliquez sur les transitions que vous souhaitez activer</p>
+                    <div id="transitionsGrid" class="transitions-grid"></div>
+                    <button class="btn btn-success" onclick="generateEquations()">Générer les équations</button>
+                </div>
+            </div>
+
+            <!-- Onglet Équations générées -->
+            <div id="equations" class="tab-content">
+                <div class="form-section">
+                    <h3>📝 Système d'équations généré</h3>
+                    <div id="equationsDisplay" class="equations-display">
+                        <p>Créez d'abord un automate pour voir les équations générées.</p>
+                    </div>
+                    <button class="btn btn-success" onclick="solveGeneratedEquations()">Résoudre les équations</button>
+                    <button class="btn" onclick="resetAutomaton()">Créer un nouvel automate</button>
+                </div>
+            </div>
+
+            <!-- Onglet Équations manuelles -->
+            <div id="manual" class="tab-content">
+                <div class="form-section">
+                    <h3>✏️ Saisie manuelle d'équations</h3>
+                    <p>Entrez vos équations au format: X0 = aX1 + bX2 + ε</p>
+                    <div id="manualEquations">
+                        <div class="manual-equation-input">
+                            <input type="text" placeholder="Variable (ex: X0)" class="var-input">
+                            <span>=</span>
+                            <input type="text" placeholder="Expression (ex: aX1 + bX2 + ε)" class="expr-input">
+                            <button class="btn btn-danger" onclick="removeEquation(this)">❌</button>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="addManualEquation()">➕ Ajouter équation</button>
+                    <button class="btn btn-success" onclick="solveManualEquations()">Résoudre</button>
+                </div>
+            </div>
+
+            <!-- Onglet Solutions -->
+            <div id="solutions" class="tab-content">
+                <div class="form-section">
+                    <h3>🎯 Solutions et étapes de résolution</h3>
+                    <div id="solutionsDisplay">
+                        <p>Résolvez d'abord un système d'équations pour voir les solutions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="static/script.js"></script>
+</body>
+</html>
