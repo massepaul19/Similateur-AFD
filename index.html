@@ -40,7 +40,7 @@
 
         <section class="operations-section">
             <div class="operations-container">
-                <h2 class="section-title">🛠️ Nos Opérations</h2>
+                <h2 class="section-title">Nos Opérations</h2>
                 <p class="section-subtitle">
                     Une suite complète d'outils pour manipuler et analyser vos automates
                 </p>
@@ -48,16 +48,16 @@
                 <div class="operations-grid">
                     <!-- Colonne Gauche (Impairs) -->
                     <div class="operation-column">
-                        <h3 class="column-title">🎨 Opérations Fondamentales</h3>
+                        <h3 class="column-title"> Opérations Fondamentales</h3>
                         
-                        <div class="operation-item" onclick="window.location.href='menus/systeme-equations.html'">
-                            <div class="operation-title">
-                                <span class="operation-number">1</span>Résolution de système d'équations
-                            </div>
-                            <div class="operation-desc">
-                                Résolvez des systèmes d'équations et obtenez l'expression régulière correspondante
-                            </div>
-                        </div>
+                        <div class="operation-item" onclick="window.location.href='http://localhost:5001'">
+    			    <div class="operation-title">
+        			<span class="operation-number">1</span>Résolution de système d'équations
+    			    </div>
+   		       <div class="operation-desc">
+       			 Résolvez des systèmes d'équations et obtenez l'expression régulière correspondante
+  			</div>
+			</div>
 
                         <div class="operation-item" onclick="window.location.href='menus/extraction-regex.html'">
                             <div class="operation-title">
@@ -196,17 +196,6 @@
     </main>
 
     <script>
-        // Effet de parallax subtil sur le header
-        window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
-            const header = document.querySelector('.header');
-            
-            if (scrolled > 0) {
-                header.style.transform = `translateY(${scrolled * 0.1}px)`;
-            } else {
-                header.style.transform = 'translateY(0)';
-            }
-        });
 
         // Animation au chargement
         document.addEventListener('DOMContentLoaded', () => {
@@ -265,7 +254,7 @@
                 overflow: hidden;
             }
         `;
-        document.head.appendChild(style);
+        document.head.appendChild(style); 
     </script>
 </body>
 </html>
