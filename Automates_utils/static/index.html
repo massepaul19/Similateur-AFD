@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur d'Automates Finis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab.active {
+            background: white;
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .form-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .states-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .state-tag {
+            background: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .state-tag:hover {
+            background: #dee2e6;
+        }
+
+        .state-tag.selected {
+            background: #667eea;
+            color: white;
+            border-color: #5a6fd8;
+        }
+
+        .transitions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .transition-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .transition-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .transition-card.selected {
+            background: #667eea;
+            color: white;
+            border-color: #5a6fd8;
+        }
+
+        .test-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .recognition-result {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .recognition-path {
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 0 5px 5px 0;
+        }
+
+        .state-analysis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .analysis-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .analysis-card h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .state-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .state-badge {
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+
+        .state-badge.accessible {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .state-badge.coaccessible {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .state-badge.useful {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .state-badge.useless {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .menu-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .menu-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .menu-button {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .menu-button:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .menu-button h4 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .word-input-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Simulateur d'Automates Finis</h1>
+            <p>Créez, testez et analysez vos automates finis déterministes et non-déterministes</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('creation')">📝 Création</div>
+            <div class="tab" onclick="showTab('transitions')">🔄 Transitions</div>
+            <div class="tab" onclick="showTab('menu')">🎯 Menu Principal</div>
+            <div class="tab" onclick="showTab('recognition')">🧪 Reconnaissance</div>
+            <div class="tab" onclick="showTab('analysis')">📊 Analyse</div>
+        </div>
+
+        <!-- Onglet Création -->
+        <div id="creation" class="tab-content active">
+            <div class="form-section">
+                <h3>🎯 Configuration de base</h3>
+                <div class="input-group">
+                    <label for="alphabet">Alphabet (ex: ab, abc, 012)</label>
+                    <input type="text" id="alphabet" placeholder="Entrez l'alphabet">
+                </div>
+                <div class="input-group">
+                    <label for="nbStates">Nombre d'états</label>
+                    <input type="number" id="nbStates" min="1" max="20" placeholder="Ex: 3">
+                </div>
+                <button class="btn" onclick="generateStates()">Générer les états</button>
+            </div>
+
+            <div class="form-section" id="statesSection" style="display: none;">
+                <h3>🏁 États initiaux et finaux</h3>
+                <div class="input-group">
+                    <label>États initiaux</label>
+                    <div id="initialStates" class="states-container"></div>
+                </div>
+                <div class="input-group">
+                    <label>États finaux</label>
+                    <div id="finalStates" class="states-container"></div>
+                </div>
+                <button class="btn btn-success" onclick="nextStep()">Configurer les transitions</button>
+            </div>
+        </div>
+
+        <!-- Onglet Transitions -->
+        <div id="transitions" class="tab-content">
+            <div class="form-section">
+                <h3>🔄 Sélection des transitions</h3>
+                <p>Cliquez sur les transitions que vous souhaitez activer</p>
+                <div id="transitionsGrid" class="transitions-grid"></div>
+                <button class="btn btn-success" onclick="saveAutomaton()">Enregistrer l'automate</button>
+            </div>
+        </div>
+
+        <!-- Menu Principal -->
+        <div id="menu" class="tab-content">
+            <div class="menu-section">
+                <h3>🎯 Que souhaitez-vous faire avec votre automate ?</h3>
+                <div class="menu-buttons">
+                    <div class="menu-button" onclick="showTab('recognition')">
+                        <h4>🧪 Reconnaissance de Mots</h4>
+                        <p>Testez si un mot est accepté par l'automate</p>
+                    </div>
+                    <div class="menu-button" onclick="showTab('analysis')">
+                        <h4>📊 Analyse des États</h4>
+                        <p>Analysez les états utiles, accessibles et co-accessibles</p>
+                    </div>
+                    <div class="menu-button" onclick="determinizeAutomaton()">
+                        <h4>🔄 Déterminisation</h4>
+                        <p>Convertir un AFN en AFD</p>
+                    </div>
+                    <div class="menu-button" onclick="minimizeAutomaton()">
+                        <h4>🔧 Minimisation</h4>
+                        <p>Minimiser l'automate déterministe</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglet Reconnaissance -->
+        <div id="recognition" class="tab-content">
+            <div class="word-input-section">
+                <h3>🧪 Reconnaissance de Mots</h3>
+                <div class="input-group">
+                    <label for="testWord">Mot à tester</label>
+                    <input type="text" id="testWord" placeholder="Ex: aaba">
+                </div>
+                <button class="btn btn-success" onclick="recognizeWord()">Reconnaître le mot</button>
+                <button class="btn" onclick="addToTestList()">Ajouter à la liste</button>
+            </div>
+
+            <div id="recognitionResult" class="recognition-result" style="display: none;">
+                <h4>Résultat de la reconnaissance</h4>
+                <div id="recognitionDetails"></div>
+            </div>
+
+            <div class="form-section">
+                <h4>📋 Liste des mots testés</h4>
+                <div id="testWordsList"></div>
+                <button class="btn" onclick="testAllWords()">Tester tous les mots</button>
+            </div>
+        </div>
+
+        <!-- Onglet Analyse -->
+        <div id="analysis" class="tab-content">
+            <div class="form-section">
+                <h3>📊 Analyse de l'automate</h3>
+                <button class="btn" onclick="analyzeStates()">Analyser les états</button>
+                <button class="btn btn-secondary" onclick="visualizeAutomaton()">Visualiser</button>
+            </div>
+            
+            <div id="stateAnalysisResults" class="state-analysis"></div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let currentAutomaton = {
+            alphabet: '',
+            states: [],
+            initialStates: [],
+            finalStates: [],
+            transitions: {},
+            testWords: []
+        };
+
+        let isAutomatonSaved = false;
+
+        // Gestion des onglets
+        function showTab(tabName) {
+            // Vérifier si l'automate est sauvegardé pour certains onglets
+            if ((tabName === 'menu' || tabName === 'recognition' || tabName === 'analysis') && !isAutomatonSaved) {
+                showAlert('⚠️ Veuillez d\'abord créer et enregistrer un automate', 'warning');
+                return;
+            }
+
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // Génération des états
+        function generateStates() {
+            const alphabet = document.getElementById('alphabet').value.trim();
+            const nbStates = parseInt(document.getElementById('nbStates').value);
+
+            if (!alphabet || !nbStates) {
+                showAlert('⚠️ Veuillez remplir l\'alphabet et le nombre d\'états', 'warning');
+                return;
+            }
+
+            currentAutomaton.alphabet = alphabet;
+            currentAutomaton.states = Array.from({length: nbStates}, (_, i) => i);
+
+            generateStateButtons('initialStates', 'initial');
+            generateStateButtons('finalStates', 'final');
+
+            document.getElementById('statesSection').style.display = 'block';
+        }
+
+        function generateStateButtons(containerId, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            currentAutomaton.states.forEach(state => {
+                const button = document.createElement('div');
+                button.className = 'state-tag';
+                button.textContent = `q${state}`;
+                
+                button.onclick = () => toggleState(state, type, button);
+                container.appendChild(button);
+            });
+        }
+
+        function toggleState(state, type, button) {
+            const isSelected = button.classList.contains('selected');
+            const targetArray = type === 'initial' ? currentAutomaton.initialStates : currentAutomaton.finalStates;
+
+            if (isSelected) {
+                const index = targetArray.indexOf(state);
+                if (index > -1) targetArray.splice(index, 1);
+                button.classList.remove('selected');
+            } else {
+                targetArray.push(state);
+                button.classList.add('selected');
+            }
+        }
+
+        function nextStep() {
+            if (currentAutomaton.initialStates.length === 0) {
+                showAlert('⚠️ Veuillez sélectionner au moins un état initial', 'warning');
+                return;
+            }
+            if (currentAutomaton.finalStates.length === 0) {
+                showAlert('⚠️ Veuillez sélectionner au moins un état final', 'warning');
+                return;
+            }
+
+            generateTransitionsGrid();
+            showTab('transitions');
+        }
+
+        function generateTransitionsGrid() {
+            const grid = document.getElementById('transitionsGrid');
+            grid.innerHTML = '';
+
+            currentAutomaton.states.forEach(from => {
+                currentAutomaton.alphabet.split('').forEach(symbol => {
+                    currentAutomaton.states.forEach(to => {
+                        const card = document.createElement('div');
+                        card.className = 'transition-card';
+                        card.innerHTML = `<strong>q${from} --${symbol}--> q${to}</strong>`;
+                        card.onclick = () => toggleTransition(from, symbol, to, card);
+                        grid.appendChild(card);
+                    });
+                });
+            });
+        }
+
+        function toggleTransition(from, symbol, to, card) {
+            const key = `${from}-${symbol}`;
+            if (!currentAutomaton.transitions[key]) {
+                currentAutomaton.transitions[key] = [];
+            }
+
+            const index = currentAutomaton.transitions[key].indexOf(to);
+            if (index > -1) {
+                currentAutomaton.transitions[key].splice(index, 1);
+                card.classList.remove('selected');
+            } else {
+                currentAutomaton.transitions[key].push(to);
+                card.classList.add('selected');
+            }
+        }
+
+        async function saveAutomaton() {
+            try {
+                const response = await fetch('/api/save-automaton', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentAutomaton)
+                });
+
+                if (response.ok) {
+                    showAlert('✅ Automate enregistré avec succès!', 'success');
+                    isAutomatonSaved = true;
+                    showTab('menu');
+                } else {
+                    showAlert('❌ Erreur lors de l\'enregistrement', 'danger');
+                }
+            } catch (error) {
+                showAlert('❌ Erreur de connexion au serveur', 'danger');
+            }
+        }
+
+        async function recognizeWord() {
+            const word = document.getElementById('testWord').value.trim();
+            if (!word) {
+                showAlert('⚠️ Veuillez entrer un mot à tester', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/recognize-word', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ word: word })
+                });
+
+                const result = await response.json();
+                displayRecognitionResult(word, result);
+            } catch (error) {
+                showAlert('❌ Erreur lors de la reconnaissance', 'danger');
+            }
+        }
+
+        function displayRecognitionResult(word, result) {
+            const container = document.getElementById('recognitionResult');
+            const details = document.getElementById('recognitionDetails');
+            
+            let html = `<h5>Mot testé: "${word}"</h5>`;
+            
+            if (result.accepted) {
+                html += `<div class="alert alert-success">✅ Mot ACCEPTÉ par l'automate</div>`;
+            } else {
+                html += `<div class="alert alert-danger">❌ Mot REJETÉ par l'automate</div>`;
+            }
+
+            if (result.path && result.path.length > 0) {
+                html += `<h6>Chemin de reconnaissance:</h6>`;
+                result.path.forEach((step, index) => {
+                    html += `<div class="recognition-path">
+                        <strong>Étape ${index + 1}:</strong> 
+                        État q${step.state} 
+                        ${step.symbol ? `→ lecture '${step.symbol}' →` : '(fin)'}
+                        ${step.next_states ? `États suivants: [${step.next_states.map(s => 'q' + s).join(', ')}]` : ''}
+                    </div>`;
+                });
+            }
+
+            if (result.explanation) {
+                html += `<div class="alert alert-warning">
+                    <strong>Explication:</strong> ${result.explanation}
+                </div>`;
+            }
+
+            details.innerHTML = html;
+            container.style.display = 'block';
+        }
+
+        function addToTestList() {
+            const word = document.getElementById('testWord').value.trim();
+            if (!word) return;
+
+            if (!currentAutomaton.testWords.includes(word)) {
+                currentAutomaton.testWords.push(word);
+                updateTestWordsList();
+            }
+            document.getElementById('testWord').value = '';
+        }
+
+        function updateTestWordsList() {
+            const container = document.getElementById('testWordsList');
+            container.innerHTML = '';
+
+            currentAutomaton.testWords.forEach((word, index) => {
+                const item = document.createElement('div');
+                item.className = 'test-item';
+                item.innerHTML = `
+                    <span><strong>"${word}"</strong></span>
+                    <div>
+                        <button class="btn" onclick="testSingleWord('${word}')">Tester</button>
+                        <button class="btn btn-danger" onclick="removeTestWord(${index})">Supprimer</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function testSingleWord(word) {
+            try {
+                const response = await fetch('/api/recognize-word', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ word: word })
+                });
+
+                const result = await response.json();
+                displayRecognitionResult(word, result);
+            } catch (error) {
+                showAlert('❌ Erreur lors du test', 'danger');
+            }
+        }
+
+        function removeTestWord(index) {
+            currentAutomaton.testWords.splice(index, 1);
+            updateTestWordsList();
+        }
+
+        async function analyzeStates() {
+            try {
+                const response = await fetch('/api/analyze-states', {
+                    method: 'GET'
+                });
+
+                const analysis = await response.json();
+                displayStateAnalysis(analysis);
+            } catch (error) {
+                showAlert('❌ Erreur lors de l\'analyse', 'danger');
+            }
+        }
+
+        function displayStateAnalysis(analysis) {
+            const container = document.getElementById('stateAnalysisResults');
+            
+            let html = `
+                <div class="analysis-card">
+                    <h4>🔍 États Accessibles</h4>
+                    <p>États atteignables depuis l'état initial</p>
+                    <div class="state-list">
+                        ${analysis.accessible.map(state => `<span class="state-badge accessible">q${state}</span>`).join('')}
+                    </div>
+                </div>
+
+                <div class="analysis-card">
+                    <h4>🎯 États Co-accessibles</h4>
+                    <p>États depuis lesquels on peut atteindre un état final</p>
+                    <div class="state-list">
+                        ${analysis.coaccessible.map(state => `<span class="state-badge coaccessible">q${state}</span>`).join('')}
+                    </div>
+                </div>
+
+                <div class="analysis-card">
+                    <h4>✅ États Utiles</h4>
+                    <p>États à la fois accessibles et co-accessibles</p>
+                    <div class="state-list">
+                        ${analysis.useful.map(state => `<span class="state-badge useful">q${state}</span>`).join('')}
+                    </div>
+                </div>
+
+                <div class="analysis-card">
+                    <h4>❌ États Inutiles</h4>
+                    <p>États qui ne servent pas à la reconnaissance</p>
+                    <div class="state-list">
+                        ${analysis.useless.map(state => `<span class="state-badge useless">q${state}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+
+            if (analysis.is_trimmed) {
+                html += `<div class="alert alert-success">
+                    ✅ L'automate est émondé (tous les états sont utiles)
+                </div>`;
+            } else {
+                html += `<div class="alert alert-warning">
+                    ⚠️ L'automate n'est pas émondé (contient des états inutiles)
+                </div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        async function determinizeAutomaton() {
+            try {
+                const response = await fetch('/api/determinize', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('✅ Automate déterminisé avec succès!', 'success');
+                } else {
+                    showAlert('❌ Erreur lors de la déterminisation', 'danger');
+                }
+            } catch (error) {
+                showAlert('❌ Erreur de connexion', 'danger');
+            }
+        }
+
+        async function minimizeAutomaton() {
+            try {
+                const response = await fetch('/api/minimize', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('✅ Automate minimisé avec succès!', 'success');
+                } else {
+                    showAlert('❌ Erreur lors de la minimisation', 'danger');
+                }
+            } catch (error) {
+                showAlert('❌ Erreur de connexion', 'danger');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            document.querySelector('.container').prepend(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function visualizeAutomaton() {
+            showAlert('🎨 Fonctionnalité de visualisation en cours de développement', 'warning');
+        }
+    </script>
+</body>
+</html>

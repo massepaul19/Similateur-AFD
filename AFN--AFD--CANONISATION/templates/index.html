@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 Visualiseur d'Automates</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🔄 Visualiseur d'Automates</h1>
+            <p>Créez, visualisez et convertissez vos automates finis (AFN → AFD)</p>
+        </header>
+
+        <div class="main-content">
+            <div class="panel">
+                <h2>⚙️ Configuration de l'Automate</h2>
+                <div class="form-group">
+                    <label for="alphabet">Alphabet (séparé par des virgules):</label>
+                    <input type="text" id="alphabet" placeholder="a,b">
+                </div>
+                <div class="form-group">
+                    <label for="etats">États (séparé par des virgules):</label>
+                    <input type="text" id="etats" placeholder="q0,q1,q2">
+                </div>
+                <div class="form-group">
+                    <label for="etatInitial">État initial:</label>
+                    <input type="text" id="etatInitial" placeholder="q0">
+                </div>
+                <div class="form-group">
+                    <label for="etatsFinaux">États finaux (séparé par des virgules):</label>
+                    <input type="text" id="etatsFinaux" placeholder="q2">
+                </div>
+                <div class="form-group">
+                    <label for="transitions">Transitions (format JSON):</label>
+                    <textarea id="transitions" placeholder='{
+  "q0": {"a": ["q1"], "b": ["q0"]},
+  "q1": {"a": ["q2"], "b": ["q1"]},
+  "q2": {"a": ["q2"], "b": ["q2"]}
+}'></textarea>
+                </div>
+                <div class="form-group">
+                    <button class="button" onclick="createAutomate()">🔧 Créer l'Automate</button>
+                    <button class="button" id="convertBtn" onclick="convertToAFD()" disabled>🔄 Convertir en AFD</button>
+                    <button class="button secondary" onclick="validateAutomate()">✅ Valider</button>
+                    <button class="button danger" onclick="clearForm()">🗑️ Effacer</button>
+                </div>
+                <div class="examples">
+                    <h4>Exemples prédéfinis:</h4>
+                    <div class="example-buttons">
+                        <button class="example-btn" onclick="loadExample('simple')">AFN Simple</button>
+                        <button class="example-btn" onclick="loadExample('complex')">AFN Complexe</button>
+                        <button class="example-btn" onclick="loadExample('binary')">Nombres Binaires</button>
+                    </div>
+                </div>
+                <div class="test-section">
+                    <h3>🧪 Test de Mots</h3>
+                    <div class="test-input">
+                        <input type="text" id="testWord" placeholder="Entrez un mot à tester">
+                        <button class="button" id="testBtn" onclick="testWord()" disabled>Tester</button>
+                    </div>
+                    <div id="testResult"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📊 Visualisation</h2>
+                <div class="canvas-container">
+                    <canvas id="automateCanvas"></canvas>
+                </div>
+                <div class="canvas-controls">
+                    <button class="button" onclick="exportCanvas()">📸 Exporter Image</button>
+                    <button class="button" onclick="resetZoom()">🔍 Reset Zoom</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel" id="automateInfo">
+            <h2>📋 Informations de l'Automate</h2>
+            <p>Créez un automate pour voir les informations ici.</p>
+        </div>
+
+        <div class="info-panel" id="afdPanel" style="display: none;">
+            <h2>🔄 AFD Généré</h2>
+            <div id="afdInfo">
+                <p>Convertissez un AFN pour voir l'AFD généré ici.</p>
+            </div>
+        </div>
+
+        <div id="messages"></div>
+    </div>
+
+    <script src="/static/index.js"></script>
+</body>
+</html>
