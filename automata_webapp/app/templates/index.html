@@ -1,0 +1,230 @@
+{% extends "base/layout.html" %}
+
+{% block content %}
+
+<main class="main-content">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">AutoLab</h1>
+                <h2 class="hero-subtitle">Laboratoire Virtuel d'Automates Finis</h2>
+                <p class="hero-description">
+                    Plateforme professionnelle dédiée à l'étude, la manipulation et l'analyse des automates finis. 
+                    Découvrez un environnement complet pour l'apprentissage de la théorie des langages formels 
+                    avec des outils de pointe et une interface intuitive.
+                </p>
+                <div class="hero-buttons">
+                    <button class="btn-primary">
+                        <i class="fas fa-play"></i>
+                        Commencer maintenant
+                    </button>
+                    <button class="btn-secondary">
+                        <i class="fas fa-book"></i>
+                        Guide d'utilisation
+                    </button>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="automation-demo">
+                    <div class="demo-node start">
+                        <span>q₀</span>
+                    </div>
+                    <div class="demo-edge">
+                        <span>a</span>
+                    </div>
+                    <div class="demo-node">
+                        <span>q₁</span>
+                    </div>
+                    <div class="demo-edge">
+                        <span>b</span>
+                    </div>
+                    <div class="demo-node final">
+                        <span>q₂</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="stats-section">
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-number">15+</div>
+                <div class="stat-label">Algorithmes</div>
+                <div class="stat-description">Implémentés</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">8</div>
+                <div class="stat-label">Types de</div>
+                <div class="stat-description">Conversions</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">∞</div>
+                <div class="stat-label">Automates</div>
+                <div class="stat-description">Possibles</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">100%</div>
+                <div class="stat-label">Précision</div>
+                <div class="stat-description">Garantie</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Automata Gallery -->
+    <div class="gallery-section">
+        <h3 class="section-title">
+            <i class="fas fa-images"></i>
+            Automates Récemment Créés
+        </h3>
+        <div class="automata-gallery">
+            <div class="automata-card">
+                <div class="automata-placeholder">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>AFD Simple</span>
+                </div>
+                <div class="automata-info">
+                    <h4>Automate Déterministe</h4>
+                    <p>3 états, 2 symboles</p>
+                    <span class="automata-date">Il y a 2h</span>
+                </div>
+            </div>
+            <div class="automata-card">
+                <div class="automata-placeholder">
+                    <i class="fas fa-sitemap"></i>
+                    <span>ε-AFN</span>
+                </div>
+                <div class="automata-info">
+                    <h4>Epsilon-NFA</h4>
+                    <p>5 états, epsilon-transitions</p>
+                    <span class="automata-date">Il y a 1j</span>
+                </div>
+            </div>
+            <div class="automata-card">
+                <div class="automata-placeholder">
+                    <i class="fas fa-network-wired"></i>
+                    <span>Thompson</span>
+                </div>
+                <div class="automata-info">
+                    <h4>Construction Thompson</h4>
+                    <p>Expression: (a|b)*abb</p>
+                    <span class="automata-date">Il y a 3j</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Grid -->
+    <div class="features-section">
+        <h3 class="section-title">
+            <i class="fas fa-star"></i>
+            Fonctionnalités Principales
+        </h3>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon blue">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <h4 class="feature-title">Création Interactive</h4>
+                <p class="feature-description">
+                    Interface graphique intuitive pour créer et modifier vos automates en temps réel.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon cyan">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <h4 class="feature-title">Conversions Automatiques</h4>
+                <p class="feature-description">
+                    Transformez facilement entre AFN, AFD, ε-AFN et expressions régulières.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon green">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h4 class="feature-title">Analyse Complète</h4>
+                <p class="feature-description">
+                    Outils d'analyse avancés pour étudier les propriétés de vos automates.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon orange">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h4 class="feature-title">Algorithmes Classiques</h4>
+                <p class="feature-description">
+                    Implémentation des algorithmes de Thompson, Glushkov et bien d'autres.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon purple">
+                    <i class="fas fa-compress-alt"></i>
+                </div>
+                <h4 class="feature-title">Minimisation</h4>
+                <p class="feature-description">
+                    Réduisez vos automates à leur forme minimale équivalente automatiquement.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon red">
+                    <i class="fas fa-download"></i>
+                </div>
+                <h4 class="feature-title">Import/Export</h4>
+                <p class="feature-description">
+                    Sauvegardez et partagez vos travaux au format JSON ou image.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="cta-section">
+        <div class="cta-content">
+            <h3>Prêt à explorer le monde des automates ?</h3>
+            <p>Rejoignez des milliers d'étudiants et chercheurs qui utilisent AutoLab pour leurs projets.</p>
+            <button class="btn-cta">
+                <i class="fas fa-rocket"></i>
+                Créer mon premier automate
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Projet Académique</h4>
+                <p><strong>TP INF3421</strong> - Implémentation d'Opérations sur les Automates</p>
+                <p><strong>Université de Yaoundé I</strong></p>
+                <p>Faculté des Sciences - Département d'Informatique</p>
+            </div>
+            <div class="footer-section">
+                <h4>Encadrement</h4>
+                <p><strong>Enseignant :</strong> Dr. Etienne KOUOKAM</p>
+                <p><strong>Email :</strong> etienne.kouokam@facsciences-uy1.cm</p>
+                <p><strong>Année Académique :</strong> 2024-2025</p>
+            </div>
+            <div class="footer-section">
+                <h4>Développement</h4>
+                <p>Développé par les étudiants de L3 Informatique</p>
+                <p>Dans le cadre de l'étude des automates finis</p>
+                <p><strong>Version :</strong> 1.0.0</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 AutoLab - Université de Yaoundé I. Tous droits réservés.</p>
+            <p>Plateforme éducative dédiée à l'apprentissage de la théorie des automates</p>
+        </div>
+    </footer>
+</main>
+
+
+{% endblock content %}

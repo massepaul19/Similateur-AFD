@@ -1,0 +1,301 @@
+{% extends "base/layout.html" %}
+
+{% block style %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/afficher.css') }}">
+{% endblock style %}
+
+{% block content %}
+<main class="main-content">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <div class="header-info">
+                    <h1><i class="fas fa-project-diagram"></i> Mes Automates</h1>
+                    <p>Gérez, analysez et transformez vos automates finis avec une interface intuitive et des outils avancés.</p>
+                </div>
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ stats.total }}</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ stats.types }}</div>
+                        <div class="stat-label">Types</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ stats.operations }}</div>
+                        <div class="stat-label">Opérations</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        {% if error %}
+        <div class="alert alert-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            Erreur lors du chargement des automates: {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <div class="filter-header">
+                <div class="filter-title">
+                    <i class="fas fa-filter"></i>
+                    Filtrer par type d'automate
+                </div>
+                <button class="create-btn" onclick="createAutomate()">
+                    <i class="fas fa-plus"></i>
+                    Créer un automate
+                </button>
+            </div>
+            <div class="filter-tabs">
+                <div class="filter-tab active" data-type="all">
+                    <i class="fas fa-list"></i>
+                    Tous
+                    <span class="filter-count">{{ stats.total }}</span>
+                </div>
+                <div class="filter-tab" data-type="afd">
+                    <i class="fas fa-circle"></i>
+                    AFD
+                    <span class="filter-count">{{ type_counts.get('afd', 0) }}</span>
+                </div>
+                <div class="filter-tab" data-type="afn">
+                    <i class="fas fa-project-diagram"></i>
+                    AFN
+                    <span class="filter-count">{{ type_counts.get('afn', 0) }}</span>
+                </div>
+                <div class="filter-tab" data-type="epsilon-afn">
+                    <i class="fas fa-sitemap"></i>
+                    ε-AFN
+                    <span class="filter-count">{{ type_counts.get('epsilon-afn', 0) }}</span>
+                </div>
+                <div class="filter-tab" data-type="afdc">
+                    <i class="fas fa-compress-alt"></i>
+                    AFDC
+                    <span class="filter-count">{{ type_counts.get('afdc', 0) }}</span>
+                </div>
+                <div class="filter-tab" data-type="thompson">
+                    <i class="fas fa-network-wired"></i>
+                    Thompson
+                    <span class="filter-count">{{ type_counts.get('thompson', 0) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Automates Grid -->
+        <div class="automates-grid" id="automatesGrid">
+            {% for automate in automates %}
+            <div class="automate-card" data-type="{{ automate.type }}" data-id="{{ automate.id }}" 
+     data-automate='{{ automate | tojson | safe }}'>
+    <div class="automate-visual">
+        <div class="type-badge {{ automate.type }}">
+            {% if automate.type == 'afd' %}AFD
+            {% elif automate.type == 'afn' %}AFN
+            {% elif automate.type == 'epsilon-afn' %}ε-AFN
+            {% elif automate.type == 'afdc' %}AFDC
+            {% elif automate.type == 'thompson' %}Thompson
+            {% else %}{{ automate.type.upper() }}
+            {% endif %}
+        </div>
+        <div class="automate-graph" id="graph-{{ automate.id }}">
+            <!-- Le graphe sera généré dynamiquement -->
+            <div class="graph-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                Chargement...
+            </div>
+        </div>
+    </div>
+                <div class="automate-info">
+                    <div class="automate-header">
+                        <div>
+                            <div class="automate-name">{{ automate.name }}</div>
+                            <div class="automate-description">
+                                {{ automate.description or "Aucune description" }}
+                            </div>
+                            <div class="automate-date">
+                                Créé le {{ automate.created_at[:10] if automate.created_at else 'N/A' }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="automate-stats">
+                        <div class="stat-badge">
+                            <i class="fas fa-circle"></i>
+                            {{ automate.states_count }} État{{ 's' if automate.states_count > 1 else '' }}
+                        </div>
+                        <div class="stat-badge">
+                            <i class="fas fa-arrow-right"></i>
+                            {{ automate.transitions_count }} Transition{{ 's' if automate.transitions_count > 1 else '' }}
+                        </div>
+                        <div class="stat-badge">
+                            <i class="fas fa-font"></i>
+                            Σ = {{ automate.alphabet_str }}
+                        </div>
+                    </div>
+                    <div class="automate-actions">
+                        <div class="action-group">
+                            <div class="action-group-title">
+                                <i class="fas fa-cogs"></i>
+                                Actions principales
+                            </div>
+                            <div class="action-buttons">
+                                <button class="action-btn primary" data-action="visualize">
+                                    <i class="fas fa-eye"></i>
+                                    Visualiser
+                                </button>
+                                <button class="action-btn" data-action="edit">
+                                    <i class="fas fa-edit"></i>
+                                    Modifier
+                                </button>
+                                <button class="action-btn" data-action="export">
+                                    <i class="fas fa-download"></i>
+                                    Exporter
+                                </button>
+                                <button class="action-btn danger" data-action="delete">
+                                    <i class="fas fa-trash"></i>
+                                    Supprimer
+                                </button>
+                            </div>
+                        </div>
+                        <div class="action-group">
+                            <div class="action-group-title">
+                                <i class="fas fa-exchange-alt"></i>
+                                Conversions
+                            </div>
+                            <div class="action-buttons">
+                                {% if automate.type != 'afd' %}
+                                <button class="action-btn success" data-action="convert-afd">
+                                    <i class="fas fa-arrow-right"></i>
+                                    → AFD
+                                </button>
+                                {% endif %}
+                                {% if automate.type != 'afn' %}
+                                <button class="action-btn" data-action="convert-afn">
+                                    <i class="fas fa-arrow-right"></i>
+                                    → AFN
+                                </button>
+                                {% endif %}
+                                <button class="action-btn" data-action="convert-regex">
+                                    <i class="fas fa-code"></i>
+                                    → RegEx
+                                </button>
+                            </div>
+                        </div>
+                        <div class="action-group">
+                            <div class="action-group-title">
+                                <i class="fas fa-tools"></i>
+                                Opérations
+                            </div>
+                            <div class="action-buttons">
+                                {% if automate.type == 'afd' %}
+                                <button class="action-btn" data-action="minimize">
+                                    <i class="fas fa-compress-alt"></i>
+                                    Minimiser
+                                </button>
+                                {% endif %}
+                                <button class="action-btn" data-action="complete">
+                                    <i class="fas fa-check"></i>
+                                    Compléter
+                                </button>
+                                <button class="action-btn" data-action="table">
+                                    <i class="fas fa-table"></i>
+                                    Table
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Empty State -->
+        {% if not automates %}
+        <div class="empty-state" id="emptyState">
+            <div class="empty-icon">
+                <i class="fas fa-project-diagram"></i>
+            </div>
+            <div class="empty-title">Aucun automate trouvé</div>
+            <div class="empty-description">
+                {% if error %}
+                Une erreur s'est produite lors du chargement des automates.
+                {% else %}
+                Vous n'avez pas encore créé d'automate. Commencez par en créer un !
+                {% endif %}
+            </div>
+            <button class="create-btn" onclick="createAutomate()">
+                <i class="fas fa-plus"></i>
+                Créer mon premier automate
+            </button>
+        </div>
+        {% else %}
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="empty-title">Aucun automate trouvé</div>
+            <div class="empty-description">
+                Aucun automate ne correspond aux critères de filtrage sélectionnés.
+            </div>
+            <button class="create-btn" onclick="clearFilters()">
+                <i class="fas fa-times"></i>
+                Effacer les filtres
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</main>
+
+<!-- Modal de confirmation de suppression -->
+<div id="deleteModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-trash"></i> Confirmer la suppression</h3>
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Êtes-vous sûr de vouloir supprimer l'automate "<span id="deleteAutomateName"></span>" ?</p>
+            <p class="warning">Cette action est irréversible.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeDeleteModal()">Annuler</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block script %}
+<script>
+    window.automatesData = {
+        {% for automate in automates %}
+        {{ automate.id }}: {
+            id: {{ automate.id }},
+            states: [
+                {% for state in automate.states %}
+                {
+                    state_id: '{{ state.state_id }}',
+                    is_initial: {{ state.is_initial | lower }},
+                    is_final: {{ state.is_final | lower }}
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            transitions: [
+                {% for transition in automate.transitions %}
+                {
+                    from_state: '{{ transition.from_state }}',
+                    to_state: '{{ transition.to_state }}',
+                    symbol: '{{ transition.symbol }}'
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            alphabet: {{ automate.alphabet | tojson | safe }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+</script>
+<script src="{{ url_for('static', filename='js/afficher.js') }}"></script>
+{% endblock script %}

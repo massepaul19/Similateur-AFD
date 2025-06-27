@@ -318,3 +318,232 @@
     <script src="static/script.js"></script>
 </body>
 </html>
+
+
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur d'Automates Finis avec Visualisation</title>
+    <link rel="stylesheet" href="static/style_auto_utils.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Simulateur d'Automates Finis</h1>
+            <p>Créez, testez et analysez vos automates avec visualisation graphique en temps réel</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('creation')">📝 Création</div>
+            <div class="tab" onclick="showTab('glushkov')">🔄 Glushkov</div>
+            <div class="tab" onclick="showTab('minimization')">🔧 Minimisation</div>
+            <div class="tab" onclick="showTab('transitions')">🔄 Transitions</div>
+            <div class="tab" onclick="showTab('recognition')">🧪 Tests</div>
+            <div class="tab" onclick="showTab('analysis')">📊 Analyse</div>
+            <div class="tab" onclick="showTab('operations')">⚙️ Opérations</div>
+        </div>
+
+        <!-- Onglet Création -->
+        <div id="creation" class="tab-content active">
+            <div class="main-content">
+                <div class="sidebar">
+                    <div class="form-section">
+                        <h3>🎯 Configuration de base</h3>
+                        <div class="input-group">
+                            <label for="alphabet">Alphabet (ex: ab, abc, 012)</label>
+                            <input type="text" id="alphabet" placeholder="Entrez l'alphabet">
+                        </div>
+                        <div class="input-group">
+                            <label for="nbStates">Nombre d'états</label>
+                            <input type="number" id="nbStates" min="1" max="20" placeholder="Ex: 3">
+                        </div>
+                        <button class="btn" onclick="generateStates()">Générer les états</button>
+                    </div>
+
+                    <div class="form-section" id="statesSection" style="display: none;">
+                        <h3>🏁 États initiaux et finaux</h3>
+                        <div class="input-group">
+                            <label>États initiaux</label>
+                            <div id="initialStates" class="states-container"></div>
+                        </div>
+                        <div class="input-group">
+                            <label>États finaux</label>
+                            <div id="finalStates" class="states-container"></div>
+                        </div>
+                        <button class="btn btn-success" onclick="nextStep()">Configurer les transitions</button>
+                    </div>
+
+                    <div class="canvas-info">
+                        💡 L'automate s'affichera automatiquement ici une fois créé
+                    </div>
+                </div>
+
+                <div class="canvas-container">
+                    <div class="canvas-header">
+                        <h4>Visualisation de l'automate</h4>
+                        <div class="canvas-controls">
+                            <button class="btn btn-small btn-secondary" onclick="resetZoom()">🔍 Reset Zoom</button>
+                            <button class="btn btn-small" onclick="centerAutomaton()">📍 Centrer</button>
+                        </div>
+                    </div>
+                    <canvas id="automatonCanvas" width="800" height="600"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglet Glushkov -->
+        <div id="glushkov" class="tab-content">
+            <div class="main-content">
+                <div class="sidebar">
+                    <div class="form-section">
+                        <h3>🔄 Construction de Glushkov</h3>
+                        <p>Construisez un automate à partir d'une expression régulière</p>
+                        
+                        <div class="input-group">
+                            <label for="regexInput">Expression régulière</label>
+                            <input type="text" id="regexInput" placeholder="Ex: b(ab)*+(ba)*b">
+                            <small class="input-help">
+                                Utilisez : + (union), . (concaténation), * (étoile), () (parenthèses)
+                            </small>
+                        </div>
+                        
+                        <button class="btn btn-success" onclick="constructGlushkov()">
+                            🚀 Construire l'automate
+                        </button>
+                        
+                        <div id="glushkovInfo" class="recognition-result" style="display: none;">
+                            <h4>Information sur la construction</h4>
+                            <div id="positionsInfo"></div>
+                            <div id="regexInfo"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>📚 Exemples d'expressions régulières</h4>
+                        <div class="examples-container">
+                            <button class="btn btn-small btn-secondary" onclick="setRegexExample('b(ab)*+(ba)*b')">
+                                b(ab)*+(ba)*b
+                            </button>
+                            <button class="btn btn-small btn-secondary" onclick="setRegexExample('a*b*')">
+                                a*b*
+                            </button>
+                            <button class="btn btn-small btn-secondary" onclick="setRegexExample('(a+b)*abb')">
+                                (a+b)*abb
+                            </button>
+                            <button class="btn btn-small btn-secondary" onclick="setRegexExample('a(a+b)*b')">
+                                a(a+b)*b
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="canvas-container">
+                    <div class="canvas-header">
+                        <h4>Automate de Glushkov</h4>
+                        <div class="canvas-controls">
+                            <button class="btn btn-small btn-secondary" onclick="resetZoom()">🔍 Reset Zoom</button>
+                            <button class="btn btn-small" onclick="centerAutomaton()">📍 Centrer</button>
+                        </div>
+                    </div>
+                    <canvas id="glushkovCanvas" width="800" height="600"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglet Minimisation -->
+        <div id="minimization" class="tab-content">
+            <div class="main-content">
+                <div class="sidebar">
+                    <div class="form-section">
+                        <h3>🔧 Minimisation d'automate</h3>
+                        <p>Minimisez votre automate en utilisant l'algorithme de Moore</p>
+                        
+                        <div class="input-group">
+                            <button class="btn btn-success" onclick="minimizeAutomatonImproved()" style="width: 100%; margin-bottom: 15px;">
+                                🚀 Minimiser l'automate
+                            </button>
+                            
+                            <button class="btn btn-secondary" onclick="showOriginalVsMinimized()" style="width: 100%; margin-bottom: 15px;">
+                                📊 Comparer Original/Minimisé
+                            </button>
+                            
+                            <button class="btn" onclick="showMinimizationSteps()" style="width: 100%;">
+                                📋 Afficher les étapes
+                            </button>
+                        </div>
+                        
+                        <div id="minimizationInfo" class="recognition-result" style="display: none;">
+                            <h4>Résultat de la minimisation</h4>
+                            <div id="minimizationSteps"></div>
+                            <div id="minimizationResult"></div>
+                        </div>
+                        
+                        <div id="minimizationStats" class="form-section" style="display: none;">
+                            <h4>📈 Statistiques</h4>
+                            <div class="stats-container">
+                                <div class="stat-item">
+                                    <span class="stat-label">États originaux :</span>
+                                    <span id="originalStatesCount" class="stat-value">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">États minimisés :</span>
+                                    <span id="minimizedStatesCount" class="stat-value">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Réduction :</span>
+                                    <span id="reductionCount" class="stat-value">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Pourcentage :</span>
+                                    <span id="reductionPercentage" class="stat-value">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>🔄 Actions</h4>
+                        <div class="input-group">
+                            <button class="btn btn-secondary" onclick="restoreOriginal()" style="width: 100%; margin-bottom: 10px;">
+                                ↩️ Restaurer l'original
+                            </button>
+                            <button class="btn" onclick="testMinimizedAutomaton()" style="width: 100%;">
+                                🧪 Tester l'automate minimisé
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="canvas-container">
+                    <div class="canvas-header">
+                        <h4>Automate minimisé</h4>
+                        <div class="canvas-controls">
+                            <button class="btn btn-small btn-secondary" onclick="resetZoom()">🔍 Reset Zoom</button>
+                            <button class="btn btn-small" onclick="centerAutomaton()">📍 Centrer</button>
+                            <button class="btn btn-small" onclick="toggleOriginalOverlay()">👁️ Superposer original</button>
+                        </div>
+                    </div>
+                    <canvas id="minimizationCanvas" width="800" height="600"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglet Transitions -->
+        <div id="transitions" class="tab-content">
+            <div class="main-content">
+                <div class="sidebar">
+                    <div class="form-section">
+                        <h3>🔄 Configuration des transitions</h3>
+                        <p>Cliquez sur les transitions que vous souhaitez activer</p>
+                        <div id="transitionsGrid" class="transitions-grid"></div>
+                        <button class="btn btn-success" onclick="saveAutomaton()">Enregistrer l'automate</button>
+                    </div>
+                </div>
+
+                <div class="canvas-container">
+                    <div class="canvas-header">
+                        <h4>Visualisation des transitions</h4>
+                        <div

@@ -1,0 +1,194 @@
+{% extends "base/layout.html" %}
+
+{% block content %}
+<main class="main-content">
+    <div class="container m-0 p-0">
+        <!-- En-tête avec gradient -->
+        <div class="mb-8 bg-gradient-to-r from-red-600 to-pink-700 rounded-xl p-6 text-white shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">
+                        <i class="fas fa-minus-circle mr-3"></i>
+                        Conversion ε-AFN → AFN
+                    </h1>
+                    <p class="text-red-100 text-lg">
+                        Éliminez les ε-transitions de vos Automates pour obtenir des AFN standards
+                    </p>
+                </div>
+                <div class="hidden md:block">
+                    <div class="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+                        <i class="fas fa-filter text-4xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if epsilon_nfas %}
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800">
+                    <i class="fas fa-list mr-3 text-red-600"></i>
+                    ε-AFN Disponibles pour Conversion
+                </h2>
+                <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {{ epsilon_nfas|length }} automate{{ 's' if epsilon_nfas|length > 1 else '' }}
+                </span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for epsilon_nfa in epsilon_nfas %}
+                <div class="border border-gray-200 rounded-xl p-5 hover:shadow-lg hover:border-red-300 transition-all duration-300 bg-gradient-to-br from-white to-gray-50">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-gray-800 text-lg">{{ epsilon_nfa.name }}</h3>
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full shadow-sm bg-red-100 text-red-800 border border-red-200">
+                            ε-AFN
+                        </span>
+                    </div>
+                    
+                    {% if epsilon_nfa.description %}
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-2 bg-gray-50 p-3 rounded-lg border-l-4 border-gray-300">
+                        {{ epsilon_nfa.description }}
+                    </p>
+                    {% endif %}
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="bg-red-50 p-3 rounded-lg text-center">
+                            <div class="text-red-600 font-bold text-xl">{{ epsilon_nfa.states|length }}</div>
+                            <div class="text-red-600 text-xs font-medium">
+                                <i class="fas fa-circle mr-1"></i>États
+                            </div>
+                        </div>
+                        <div class="bg-pink-50 p-3 rounded-lg text-center">
+                            <div class="text-pink-600 font-bold text-xl">{{ epsilon_nfa.transitions|length }}</div>
+                            <div class="text-pink-600 text-xs font-medium">
+                                <i class="fas fa-arrow-right mr-1"></i>Transitions
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <span class="text-sm font-medium text-gray-600 mb-2 block">Alphabet:</span>
+                        <div class="flex flex-wrap gap-2">
+                            {% for symbol in epsilon_nfa.alphabet %}
+                            <span class="px-2 py-1 {% if symbol == 'ε' %}bg-red-100 text-red-700 border-red-200{% else %}bg-indigo-100 text-indigo-700 border-indigo-200{% endif %} text-xs font-medium rounded-md border">
+                                {{ symbol }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="flex items-center text-sm text-gray-600">
+                            <i class="fas fa-info-circle mr-2 text-red-500"></i>
+                            <span>Contient 
+                                <strong class="text-red-600">
+                                    {{ epsilon_nfa.transitions|selectattr('symbol', 'equalto', 'ε')|list|length }}
+                                </strong> 
+                                transition{{ 's' if (epsilon_nfa.transitions|selectattr('symbol', 'equalto', 'ε')|list|length) > 1 else '' }} ε
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <a href="{{ url_for('epsilon_nfa_to_nfa.convert', id=epsilon_nfa.id) }}" 
+                           class="w-full bg-gradient-to-r from-red-600 to-pink-600 text-white text-center py-3 px-4 rounded-lg hover:from-red-700 hover:to-pink-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center justify-center font-medium">
+                            <i class="fas fa-eraser mr-2"></i>Éliminer les ε-transitions
+                        </a>
+                    </div>
+                    
+                    <div class="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-200 flex items-center">
+                        <i class="fas fa-clock mr-1"></i>
+                        Créé le {{ epsilon_nfa.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-8 text-center shadow-lg">
+            <div class="mb-6">
+                <div class="bg-yellow-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-yellow-800 mb-2">Aucun ε-AFN Disponible</h2>
+                <p class="text-yellow-700 text-lg max-w-md mx-auto">
+                    Vous devez d'abord créer un Automate Fini Non-déterministe avec ε-transitions (ε-AFN) pour pouvoir éliminer les ε-transitions.
+                </p>
+            </div>
+            
+            <div class="space-y-4">
+                <a href="" 
+                   class="inline-block bg-gradient-to-r from-red-600 to-pink-600 text-white px-8 py-4 rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-semibold text-lg">
+                    <i class="fas fa-plus mr-2"></i>Créer un ε-AFN
+                </a>
+                
+                <div class="bg-yellow-100 rounded-lg p-4 max-w-lg mx-auto border border-yellow-300">
+                    <p class="font-semibold text-yellow-800 mb-2">
+                        <i class="fas fa-info-circle mr-2"></i>Rappel : Caractéristiques d'un ε-AFN
+                    </p>
+                    <ul class="text-yellow-700 text-sm space-y-1 text-left">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                            Contient des transitions epsilon (ε)
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                            Transitions sans consommer de symbole d'entrée
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                            Peut être dans plusieurs états simultanément
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Section d'aide sur l'algorithme -->
+        <div class="bg-gradient-to-br from-red-50 to-pink-50 border border-red-200 rounded-xl p-6 shadow-md">
+            <h3 class="text-xl font-bold text-red-800 mb-4 flex items-center">
+                <div class="bg-red-100 rounded-full p-2 mr-3">
+                    <i class="fas fa-cogs text-red-600"></i>
+                </div>
+                Algorithme d'élimination des ε-transitions
+            </h3>
+            <div class="bg-white rounded-lg p-4 border border-red-100">
+                <p class="text-red-800 font-medium mb-3">
+                    L'élimination des ε-transitions utilise l'algorithme de <strong>ε-fermeture</strong> :
+                </p>
+                <div class="space-y-3">
+                    <div class="bg-red-50 p-3 rounded-lg">
+                        <h4 class="font-semibold text-red-700 mb-2">1. Calcul des ε-fermetures</h4>
+                        <p class="text-red-600 text-sm">Pour chaque état, calculer tous les états accessibles via ε-transitions</p>
+                    </div>
+                    <div class="bg-red-50 p-3 rounded-lg">
+                        <h4 class="font-semibold text-red-700 mb-2">2. Nouvelles transitions</h4>
+                        <p class="text-red-600 text-sm">Créer des transitions directes pour remplacer les chemins avec ε</p>
+                    </div>
+                    <div class="bg-red-50 p-3 rounded-lg">
+                        <h4 class="font-semibold text-red-700 mb-2">3. États finaux</h4>
+                        <p class="text-red-600 text-sm">Un état devient final si sa ε-fermeture contient un état final</p>
+                    </div>
+                    <div class="bg-red-50 p-3 rounded-lg">
+                        <h4 class="font-semibont text-red-700 mb-2">4. Suppression de ε</h4>
+                        <p class="text-red-600 text-sm">Éliminer toutes les ε-transitions et retirer ε de l'alphabet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block style %}
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+{% endblock style %}

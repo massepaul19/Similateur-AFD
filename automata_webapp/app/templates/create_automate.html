@@ -1,0 +1,326 @@
+{% extends "base/layout.html" %}
+
+{% block style %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/automaton.css') }}">
+
+{% endblock style %}
+
+
+{% block content %}
+
+<main class="main-content">
+    <!-- Header -->
+    <div class="creator-header">
+        <h1 class="creator-title">Créateur d'Automate</h1>
+        <p class="creator-subtitle">Créez votre automate fini étape par étape avec notre interface intuitive</p>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="creator-progress">
+        <div class="creator-progress-line" id="progressLine"></div>
+        <div class="creator-step active" data-step="1">
+            <span>1</span>
+            <div class="creator-step-label">Type</div>
+        </div>
+        <div class="creator-step" data-step="2">
+            <span>2</span>
+            <div class="creator-step-label">Configuration</div>
+        </div>
+        <div class="creator-step" data-step="3">
+            <span>3</span>
+            <div class="creator-step-label">Construction</div>
+        </div>
+        <div class="creator-step" data-step="4">
+            <span>4</span>
+            <div class="creator-step-label">Visualisation</div>
+        </div>
+    </div>
+
+    <!-- Step Container -->
+    <div class="creator-step-container">
+        <!-- Step 1: Type Selection -->
+        <div class="creator-step-content active" id="step1">
+            <h2 style="text-align: center; margin-bottom: 2rem; color: var(--text-primary);">
+                <i class="fas fa-list-ul" style="margin-right: 0.5rem; color: var(--primary-color);"></i>
+                Choisissez le type d'automate
+            </h2>
+            <div class="creator-type-grid">
+                <div class="creator-type-card" data-type="afd">
+                    <div class="creator-type-icon">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <h3 class="creator-type-title">AFD</h3>
+                    <p class="creator-type-description">
+                        Automate Fini Déterministe - Chaque état a au plus une transition pour chaque symbole
+                    </p>
+                </div>
+                <div class="creator-type-card" data-type="afn">
+                    <div class="creator-type-icon">
+                        <i class="fas fa-sitemap"></i>
+                    </div>
+                    <h3 class="creator-type-title">AFN</h3>
+                    <p class="creator-type-description">
+                        Automate Fini Non-déterministe - Peut avoir plusieurs transitions pour un même symbole
+                    </p>
+                </div>
+                <div class="creator-type-card" data-type="epsilon-afn">
+                    <div class="creator-type-icon">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                    <h3 class="creator-type-title">ε-AFN</h3>
+                    <p class="creator-type-description">
+                        Automate avec epsilon-transitions - Peut transitionner sans consommer de symbole
+                    </p>
+                </div>
+                <div class="creator-type-card" data-type="afdc">
+                    <div class="creator-type-icon">
+                        <i class="fas fa-compress-alt"></i>
+                    </div>
+                    <h3 class="creator-type-title">AFDC</h3>
+                    <p class="creator-type-description">
+                        Automate Fini Déterministe Complet - AFD avec toutes les transitions définies
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Configuration -->
+        <div class="creator-step-content" id="step2">
+            <h2 style="text-align: center; margin-bottom: 2rem; color: var(--text-primary);">
+                <i class="fas fa-cogs" style="margin-right: 0.5rem; color: var(--primary-color);"></i>
+                Configuration de l'automate
+            </h2>
+            <div class="creator-config-grid">
+                <div class="creator-config-section">
+                    <h3 class="creator-config-title">
+                        <i class="fas fa-info-circle"></i>
+                        Informations générales
+                    </h3>
+                    <div class="creator-form-group">
+                        <label class="creator-form-label">Nom de l'automate</label>
+                        <input type="text" class="creator-form-input" id="automateName" placeholder="Mon automate">
+                    </div>
+                    <div class="creator-form-group">
+                        <label class="creator-form-label">Description</label>
+                        <textarea class="creator-form-input creator-form-textarea" id="automateDescription" placeholder="Description de votre automate..."></textarea>
+                    </div>
+                </div>
+                <div class="creator-config-section">
+                    <h3 class="creator-config-title">
+                        <i class="fas fa-font"></i>
+                        Alphabet
+                    </h3>
+                    <div class="creator-form-group">
+                        <label class="creator-form-label">Symboles de l'alphabet</label>
+                        <input type="text" class="creator-form-input" id="alphabetInput" placeholder="Entrez un symbole et appuyez sur Entrée">
+                        <div class="creator-alphabet-tags" id="alphabetTags">
+                            <!-- Les tags seront ajoutés dynamiquement -->
+                        </div>
+                    </div>
+                    <div class="creator-form-group">
+                        <label class="creator-form-label">Symbole epsilon (optionnel)</label>
+                        <input type="text" class="creator-form-input" id="epsilonSymbol" placeholder="ε" maxlength="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Construction -->
+        <div class="creator-step-content" id="step3">
+            <h2 style="text-align: center; margin-bottom: 2rem; color: var(--text-primary);">
+                <i class="fas fa-drafting-compass" style="margin-right: 0.5rem; color: var(--primary-color);"></i>
+                Construction de l'automate
+            </h2>
+            <div class="creator-canvas-container">
+                <div class="creator-canvas-toolbar">
+                    <div class="creator-toolbar-section">
+                        <h4 class="creator-toolbar-title">
+                            <i class="fas fa-mouse-pointer"></i>
+                            Outils
+                        </h4>
+                        <button class="creator-tool-btn active" data-tool="select">
+                            <i class="fas fa-mouse-pointer"></i>
+                            Sélectionner
+                        </button>
+                        <button class="creator-tool-btn" data-tool="state">
+                            <i class="fas fa-circle"></i>
+                            Ajouter État
+                        </button>
+                        <button class="creator-tool-btn" data-tool="transition">
+                            <i class="fas fa-arrow-right"></i>
+                            Ajouter Transition
+                        </button>
+                        <button class="creator-tool-btn" data-tool="initial">
+                            <i class="fas fa-play"></i>
+                            État Initial
+                        </button>
+                        <button class="creator-tool-btn" data-tool="final">
+                            <i class="fas fa-stop"></i>
+                            État Final
+                        </button>
+                    </div>
+                    <div class="creator-toolbar-section">
+                        <h4 class="creator-toolbar-title">
+                            <i class="fas fa-edit"></i>
+                            Actions
+                        </h4>
+                        <button class="creator-tool-btn" data-action="delete">
+                            <i class="fas fa-trash"></i>
+                            Supprimer
+                        </button>
+                        <button class="creator-tool-btn" data-action="clear">
+                            <i class="fas fa-broom"></i>
+                            Tout Effacer
+                        </button>
+                        <button class="creator-tool-btn" data-action="center">
+                            <i class="fas fa-crosshairs"></i>
+                            Centrer
+                        </button>
+                    </div>
+                </div>
+                <div class="creator-canvas-area" id="automateCanvas">
+                    <div class="creator-canvas-grid"></div>
+                    <div class="creator-canvas-placeholder">
+                        <i class="fas fa-hand-pointer"></i>
+                        <p>Utilisez les outils pour construire votre automate</p>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Cliquez sur "Ajouter État" puis cliquez sur le canvas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Visualization -->
+        <!-- Step 4: Visualization -->
+<div class="creator-step-content" id="step4">
+    <h2 style="text-align: center; margin-bottom: 2rem; color: var(--text-primary);">
+        <i class="fas fa-eye" style="margin-right: 0.5rem; color: var(--primary-color);"></i>
+        Visualisation et Export
+    </h2>
+    <div class="creator-visualization">
+        <div class="creator-viz-container">
+            <!-- Canvas de visualisation finale -->
+            <div class="creator-final-canvas" id="finalCanvas">
+                <div class="creator-canvas-grid"></div>
+                <div class="creator-viz-placeholder">
+                    <i class="fas fa-project-diagram"></i>
+                    <p>Votre automate sera affiché ici</p>
+                    <p style="font-size: 0.9rem; margin-top: 0.5rem;">Utilisez les options ci-dessous pour interagir avec votre création</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Informations sur l'automate -->
+        <div class="creator-automate-info">
+            <div class="creator-info-card">
+                <h3><i class="fas fa-info-circle"></i> Informations</h3>
+                <div class="creator-info-grid">
+                    <div class="creator-info-item">
+                        <span class="creator-info-label">Type:</span>
+                        <span class="creator-info-value" id="automateTypeDisplay">-</span>
+                    </div>
+                    <div class="creator-info-item">
+                        <span class="creator-info-label">États:</span>
+                        <span class="creator-info-value" id="statesCountDisplay">0</span>
+                    </div>
+                    <div class="creator-info-item">
+                        <span class="creator-info-label">Transitions:</span>
+                        <span class="creator-info-value" id="transitionsCountDisplay">0</span>
+                    </div>
+                    <div class="creator-info-item">
+                        <span class="creator-info-label">Alphabet:</span>
+                        <span class="creator-info-value" id="alphabetDisplay">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Options d'action -->
+        <div class="creator-viz-options">
+            <div class="creator-action-section">
+                <h4><i class="fas fa-play"></i> Tests & Validation</h4>
+                <div class="creator-action-buttons">
+                    <button class="creator-viz-btn test" id="testAutomateBtn">
+                        <i class="fas fa-play"></i>
+                        Tester l'Automate
+                    </button>
+                    <button class="creator-viz-btn validate" id="validateAutomateBtn">
+                        <i class="fas fa-check-circle"></i>
+                        Valider
+                    </button>
+                    <button class="creator-viz-btn optimize" id="optimizeAutomateBtn">
+                        <i class="fas fa-compress"></i>
+                        Optimiser
+                    </button>
+                </div>
+            </div>
+            
+            <div class="creator-action-section">
+                <h4><i class="fas fa-save"></i> Sauvegarde & Export</h4>
+                <div class="creator-action-buttons">
+                    <button class="creator-viz-btn save-db" id="saveToDbBtn">
+                        <i class="fas fa-database"></i>
+                        Sauvegarder en BD
+                    </button>
+                    <button class="creator-viz-btn export" id="exportJsonBtn">
+                        <i class="fas fa-file-export"></i>
+                        Exporter JSON
+                    </button>
+                    <button class="creator-viz-btn export" id="exportImageBtn">
+                        <i class="fas fa-image"></i>
+                        Exporter Image
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Navigation -->
+    <div class="creator-navigation">
+        <button class="creator-nav-btn secondary" id="prevBtn" disabled>
+            <i class="fas fa-chevron-left"></i>
+            Précédent
+        </button>
+       
+        <button class="creator-nav-btn primary" id="nextBtn">
+            Suivant
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+</main>
+
+<!-- Hidden File Input for Import -->
+<input type="file" id="fileInput" accept=".json,.xml,.txt" style="display: none;">
+
+<!-- Modal for Testing -->
+<div id="testModal" class="creator-modal" style="display: none;">
+    <div class="creator-modal-content">
+        <div class="creator-modal-header">
+            <h3>Tester l'Automate</h3>
+            <button class="creator-modal-close">&times;</button>
+        </div>
+        <div class="creator-modal-body">
+            <div class="creator-form-group">
+                <label class="creator-form-label">Chaîne à tester</label>
+                <input type="text" class="creator-form-input" id="testString" placeholder="Entrez une chaîne...">
+            </div>
+            <div class="creator-test-result" id="testResult"></div>
+        </div>
+        <div class="creator-modal-footer">
+            <button class="creator-nav-btn secondary" id="closeTestModal">Fermer</button>
+            <button class="creator-nav-btn primary" id="runTest">Exécuter Test</button>
+        </div>
+    </div>
+</div>
+
+
+{% endblock content %}
+
+{% block script %}
+
+<script src="{{ url_for('static', filename='js/create.js') }}"></script>
+
+
+{% endblock script %}
+

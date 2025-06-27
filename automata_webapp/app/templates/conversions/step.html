@@ -1,0 +1,1044 @@
+<!-- templates/nfa_to_dfa/convert.html - Page de conversion (corrigée) -->
+{% extends "base/layout.html" %}
+
+{% block style %}
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+    .step-card {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s ease;
+    }
+    .step-card.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .conversion-progress {
+        transition: width 0.5s ease;
+    }
+    .automate-graph {
+        min-height: 300px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #f9fafb;
+        position: relative;
+    }
+    .loading-spinner {
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    .step-detail {
+        display: none;
+    }
+    .step-detail.active {
+        display: block;
+    }
+    .state-node {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .state-node:hover {
+        stroke-width: 3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="main-content">
+<div class="container mx-auto px-4 py-6">
+    <!-- En-tête -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Conversion AFN → AFD</h1>
+                <p class="text-gray-600 mt-1">{{ nfa.name }} ({{ nfa.type.upper() }})</p>
+            </div>
+            <a href="{{ url_for('nfa_to_dfa.index') }}" 
+               class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- AFN Original -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-project-diagram mr-2 text-blue-600"></i>
+                AFN Original
+            </h2>
+            
+            <!-- Informations sur l'AFN -->
+            <div class="mb-4 space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">États:</span>
+                    <span class="font-medium">{{ nfa.states|length }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Transitions:</span>
+                    <span class="font-medium">{{ nfa.transitions|length }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Alphabet:</span>
+                    <div class="flex gap-1">
+                        {% for symbol in nfa.alphabet %}
+                        <span class="px-2 py-1 bg-gray-100 text-xs rounded">{{ symbol }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Graphique AFN -->
+            <div id="nfa-graph" class="automate-graph">
+                <canvas id="nfa-canvas" width="100%" height="250"></canvas>
+            </div>
+        </div>
+
+        <!-- AFD Résultant -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-sitemap mr-2 text-green-600"></i>
+                AFD Résultant
+            </h2>
+            
+            <div id="dfa-info" class="mb-4" style="display: none;">
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">États:</span>
+                        <span id="dfa-states-count" class="font-medium">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Transitions:</span>
+                        <span id="dfa-transitions-count" class="font-medium">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Réduction:</span>
+                        <span id="reduction-ratio" class="font-medium text-green-600">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Graphique AFD -->
+            <div id="dfa-graph" class="automate-graph">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+                    <p class="mt-2 text-gray-600">Conversion en cours...</p>
+                </div>
+                <canvas id="dfa-canvas" width="100%" height="250" style="display: none;"></canvas>
+                <div id="dfa-placeholder" class="flex items-center justify-center h-full text-gray-500">
+                    <div class="text-center">
+                        <i class="fas fa-play text-4xl mb-2"></i>
+                        <p>Cliquez sur "Démarrer la conversion" pour générer l'AFD</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contrôles de conversion -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-gray-800">
+                <i class="fas fa-cogs mr-2 text-purple-600"></i>
+                Contrôles de Conversion
+            </h2>
+            
+            <!-- Barre de progression -->
+            <div class="flex-1 mx-6">
+                <div class="bg-gray-200 rounded-full h-2">
+                    <div id="progress-bar" class="conversion-progress bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+                <p id="progress-text" class="text-sm text-gray-600 mt-1">Prêt à démarrer</p>
+            </div>
+        </div>
+        
+        <div class="flex space-x-4">
+            <button id="start-conversion" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-colors">
+                <i class="fas fa-play mr-2"></i>Démarrer la conversion
+            </button>
+            
+            <button id="show-steps" class="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 transition-colors" style="display: none;">
+                <i class="fas fa-list-ol mr-2"></i>Voir les étapes
+            </button>
+            
+            <button id="save-dfa" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition-colors" style="display: none;">
+                <i class="fas fa-save mr-2"></i>Sauvegarder l'AFD
+            </button>
+            
+            <button id="reset-conversion" class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600 transition-colors" style="display: none;">
+                <i class="fas fa-redo mr-2"></i>Recommencer
+            </button>
+        </div>
+    </div>
+
+    <!-- Étapes de conversion détaillées -->
+    <div id="conversion-steps" class="bg-white rounded-lg shadow-md p-6" style="display: none;">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">
+            <i class="fas fa-list-ol mr-2 text-indigo-600"></i>
+            Étapes de la Conversion
+        </h2>
+        
+        <!-- Navigation des étapes -->
+        <div class="flex items-center justify-between mb-6 p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-center space-x-4">
+                <button id="prev-step" class="bg-gray-300 text-gray-700 px-3 py-2 rounded hover:bg-gray-400 transition-colors" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span id="step-counter" class="font-medium text-gray-800">Étape 1 sur 1</span>
+                <button id="next-step" class="bg-gray-300 text-gray-700 px-3 py-2 rounded hover:bg-gray-400 transition-colors" disabled>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <label class="flex items-center">
+                    <input type="checkbox" id="auto-play" class="mr-2">
+                    <span class="text-sm text-gray-700">Lecture automatique</span>
+                </label>
+                <button id="play-pause" class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-play"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Contenu des étapes -->
+        <div id="steps-container">
+            <!-- Les étapes seront générées dynamiquement -->
+        </div>
+    </div>
+
+    <!-- Modal de sauvegarde -->
+    <div id="save-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                <div class="p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Sauvegarder l'AFD</h3>
+                    
+                    <div class="mb-4">
+                        <label for="dfa-name" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nom de l'AFD
+                        </label>
+                        <input type="text" id="dfa-name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                               placeholder="AFD_de_{{ nfa.name }}" value="AFD_de_{{ nfa.name }}">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Informations sur l'AFD généré
+                        </label>
+                        <div id="save-info" class="bg-gray-50 p-3 rounded text-sm">
+                            <!-- Sera rempli dynamiquement -->
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button id="cancel-save" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                            Annuler
+                        </button>
+                        <button id="confirm-save" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i>Sauvegarder
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</main>
+
+<!-- Scripts JavaScript -->
+<script>
+// Données NFA passées depuis le template de manière sécurisée
+const NFA_DATA = {
+    id: {{ nfa.id }},
+    name: {{ nfa.name | tojson }},
+    states: {{ states | tojson }},
+    transitions: {{ transitions | tojson }},
+    alphabet: {{ nfa.alphabet | tojson }}
+};
+
+class NFAToDFAConverter {
+    constructor(nfaData) {
+        this.nfaData = nfaData;
+        this.nfaId = nfaData.id;
+        this.conversionData = null;
+        this.currentStep = 0;
+        this.autoPlay = false;
+        this.autoPlayInterval = null;
+        this.init();
+    }
+    
+    init() {
+        this.bindEvents();
+        this.renderNFA();
+    }
+    
+    bindEvents() {
+        document.getElementById('start-conversion').addEventListener('click', () => this.startConversion());
+        document.getElementById('show-steps').addEventListener('click', () => this.toggleSteps());
+        document.getElementById('save-dfa').addEventListener('click', () => this.showSaveModal());
+        document.getElementById('reset-conversion').addEventListener('click', () => this.resetConversion());
+        
+        // Navigation des étapes
+        document.getElementById('prev-step').addEventListener('click', () => this.previousStep());
+        document.getElementById('next-step').addEventListener('click', () => this.nextStep());
+        document.getElementById('play-pause').addEventListener('click', () => this.toggleAutoPlay());
+        document.getElementById('auto-play').addEventListener('change', (e) => {
+            this.autoPlay = e.target.checked;
+            if (!this.autoPlay && this.autoPlayInterval) {
+                clearInterval(this.autoPlayInterval);
+                this.autoPlayInterval = null;
+            }
+        });
+        
+        // Modal de sauvegarde
+        document.getElementById('cancel-save').addEventListener('click', () => this.hideSaveModal());
+        document.getElementById('confirm-save').addEventListener('click', () => this.saveDFA());
+    }
+    
+    async startConversion() {
+        try {
+            this.updateProgress(10, 'Initialisation de la conversion...');
+            document.getElementById('start-conversion').disabled = true;
+            document.querySelector('.loading-spinner').style.display = 'block';
+            
+            const response = await fetch(`/nfa-to-dfa/api/convert/${this.nfaId}`, {
+                method: 'POST',
+                headers: {  // Corrigé: 'headers' au lieu de 'contenters'
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.conversionData = data;
+                this.updateProgress(70, 'Rendu du graphique AFD...');
+                await this.renderDFA(data.dfa);
+                
+                this.updateProgress(90, 'Chargement des étapes...');
+                await this.loadConversionSteps(data.conversion_id);
+                
+                this.updateProgress(100, 'Conversion terminée !');
+                this.showSuccessControls();
+            } else {
+                throw new Error(data.error || 'Erreur lors de la conversion');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la conversion: ' + error.message);
+            this.resetConversion();
+        }
+    }
+    
+    async loadConversionSteps(conversionId) {
+        try {
+            const response = await fetch(`/nfa-to-dfa/api/steps/${conversionId}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.renderSteps(data.steps);
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des étapes:', error);
+        }
+    }
+    
+    renderNFA() {
+        this.drawAutomaton('nfa-canvas', this.nfaData, 'blue');
+    }
+    
+    async renderDFA(dfaData) {
+        // Validation des données DFA
+        if (!dfaData || !dfaData.states || !dfaData.transitions) {
+            throw new Error('Données DFA invalides');
+        }
+        
+        // Mise à jour des informations
+        document.getElementById('dfa-states-count').textContent = dfaData.states.length;
+        document.getElementById('dfa-transitions-count').textContent = dfaData.transitions.length;
+        
+        const originalStates = this.nfaData.states.length;
+        const reduction = ((originalStates - dfaData.states.length) / originalStates * 100).toFixed(1);
+        document.getElementById('reduction-ratio').textContent = reduction > 0 ? `-${reduction}%` : `+${Math.abs(reduction)}%`;
+        
+        // Affichage du graphique
+        document.querySelector('.loading-spinner').style.display = 'none';
+        document.getElementById('dfa-canvas').style.display = 'block';
+        document.getElementById('dfa-placeholder').style.display = 'none';
+        document.getElementById('dfa-info').style.display = 'block';
+        
+        this.drawAutomaton('dfa-canvas', dfaData, 'green');
+    }
+    
+    drawAutomaton(canvasId, data, color) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+            console.error(`Canvas ${canvasId} not found`);
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width - 2;
+        canvas.height = 250;
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Validation des données
+        if (!data.states || !Array.isArray(data.states)) {
+            console.error('Invalid states data:', data.states);
+            return;
+        }
+        
+        // Calculer les positions des états s'ils n'en ont pas
+        this.calculateStatePositions(data.states, canvas.width, canvas.height);
+        
+        // Dessiner les états et transitions
+        this.drawStates(ctx, data.states, color);
+        
+        if (data.transitions && Array.isArray(data.transitions)) {
+            this.drawTransitions(ctx, data.states, data.transitions, color);
+        }
+    }
+    
+    calculateStatePositions(states, width, height) {
+        const margin = 50;
+        const usableWidth = width - 2 * margin;
+        const usableHeight = height - 2 * margin;
+        
+        states.forEach((state, index) => {
+            if (!state.x || !state.y) {
+                // Disposition en cercle
+                const angle = (2 * Math.PI * index) / states.length;
+                const radius = Math.min(usableWidth, usableHeight) / 3;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                
+                state.x = centerX + radius * Math.cos(angle);
+                state.y = centerY + radius * Math.sin(angle);
+            }
+        });
+    }
+    
+    drawStates(ctx, states, color) {
+        const colors = {
+            blue: { normal: '#3B82F6', final: '#1E40AF', text: '#FFFFFF' },
+            green: { normal: '#10B981', final: '#059669', text: '#FFFFFF' }
+        };
+        
+        states.forEach(state => {
+            const x = state.x || 100;
+            const y = state.y || 100;
+            const radius = 25;
+            
+            // Cercle principal
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = state.is_final ? colors[color].final : colors[color].normal;
+            ctx.fill();
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Cercle intérieur pour les états finaux
+            if (state.is_final) {
+                ctx.beginPath();
+                ctx.arc(x, y, radius - 5, 0, 2 * Math.PI);
+                ctx.strokeStyle = colors[color].text;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            
+            // Texte de l'état
+            ctx.fillStyle = colors[color].text;
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(state.state_id || state.name || `S${state.id || ''}`, x, y);
+            
+            // Flèche pour l'état initial
+            if (state.is_initial) {
+                ctx.beginPath();
+                ctx.moveTo(x - radius - 20, y);
+                ctx.lineTo(x - radius - 5, y);
+                ctx.strokeStyle = '#374151';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Pointe de flèche
+                ctx.beginPath();
+                ctx.moveTo(x - radius - 5, y);
+                ctx.lineTo(x - radius - 10, y - 5);
+                ctx.moveTo(x - radius - 5, y);
+                ctx.lineTo(x - radius - 10, y + 5);
+                ctx.stroke();
+            }
+        });
+    }
+    
+    drawTransitions(ctx, states, transitions, color) {
+        const statePositions = {};
+        states.forEach(state => {
+            const stateId = state.state_id || state.name || `S${state.id || ''}`;
+            statePositions[stateId] = { x: state.x || 100, y: state.y || 100 };
+        });
+        
+        transitions.forEach(transition => {
+            const from = statePositions[transition.from_state];
+            const to = statePositions[transition.to_state];
+            
+            if (from && to) {
+                // Dessiner la ligne
+                ctx.beginPath();
+                ctx.moveTo(from.x, from.y);
+                ctx.lineTo(to.x, to.y);
+                ctx.strokeStyle = '#6B7280';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Label de la transition
+                const midX = (from.x + to.x) / 2;
+                const midY = (from.y + to.y) / 2;
+                
+                ctx.fillStyle = '#374151';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(transition.symbol || transition.input || '', midX, midY - 10);
+            }
+        });
+    }
+    
+    renderSteps(steps) {
+        const container = document.getElementById('steps-container');
+        container.innerHTML = '';
+        
+        if (!Array.isArray(steps) || steps.length === 0) {
+            container.innerHTML = '<p class="text-gray-500">Aucune étape disponible</p>';
+            return;
+        }
+        
+        steps.forEach((step, index) => {
+            const stepElement = this.createStepElement(step, index);
+            container.appendChild(stepElement);
+        });
+        
+        this.updateStepNavigation();
+    }
+    
+    createStepElement(step, index) {
+        const div = document.createElement('div');
+        div.className = `step-detail ${index === 0 ? 'active' : ''}`;
+        
+        // Assainir les données pour éviter les erreurs
+        const stepNumber = step.step_number || (index + 1);
+        const stepType = step.step_type || 'unknown';
+        const description = step.description || 'Aucune description disponible';
+        const currentStateSet = step.current_state_set || '';
+        const symbol = step.symbol || '';
+        const resultStateSet = step.result_state_set || '';
+        
+        div.innerHTML = `
+            <div class="border-l-4 border-blue-500 pl-4 py-3 mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="font-semibold text-gray-800">
+                        Étape ${stepNumber}: ${this.getStepTypeLabel(stepType)}
+                    </h4>
+                    <span class="text-xs text-gray-500 px-2 py-1 bg-gray-100 rounded">
+                        ${stepType}
+                    </span>
+                </div>
+                <p class="text-gray-700 mb-3">${description}</p>
+                
+                ${currentStateSet ? `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                        <span class="font-medium text-gray-600">État courant:</span>
+                        <div class="mt-1 px-2 py-1 bg-blue-50 text-blue-800 rounded text-xs">
+                            ${currentStateSet}
+                        </div>
+                    </div>
+                    ${symbol ? `
+                    <div>
+                        <span class="font-medium text-gray-600">Symbole:</span>
+                        <div class="mt-1 px-2 py-1 bg-purple-50 text-purple-800 rounded text-xs">
+                            ${symbol}
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${resultStateSet ? `
+                    <div>
+                        <span class="font-medium text-gray-600">État résultant:</span>
+                        <div class="mt-1 px-2 py-1 bg-green-50 text-green-800 rounded text-xs">
+                            ${resultStateSet}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+                ` : ''}
+                
+                ${step.details && Object.keys(step.details).length > 0 ? `
+                <details class="mt-3">
+                    <summary class="cursor-pointer text-sm text-gray-600 hover:text-gray-800">
+                        Détails techniques
+                    </summary>
+                    <div class="mt-2 p-3 bg-gray-50 rounded text-xs">
+                        <pre>${JSON.stringify(step.details, null, 2)}</pre>
+                    </div>
+                </details>
+                ` : ''}
+            </div>
+        `;
+        
+        return div;
+    }
+    
+    getStepTypeLabel(type) {
+        const labels = {
+            'start': 'Initialisation',
+            'epsilon_closure': 'Fermeture epsilon',
+            'epsilon_transition': 'Transition epsilon',
+            'epsilon_closure_result': 'Résultat fermeture epsilon',
+            'initial_state': 'État initial',
+            'process_state': 'Traitement état',
+            'no_transition': 'Aucune transition',
+            'new_state': 'Nouvel état',
+            'transition': 'Transition',
+            'complete': 'Finalisation'
+        };
+        return labels[type] || type;
+    }
+    
+    updateProgress(percent, text) {
+        document.getElementById('progress-bar').style.width = percent + '%';
+        document.getElementById('progress-text').textContent = text;
+    }
+    
+    showSuccessControls() {
+        document.getElementById('show-steps').style.display = 'inline-block';
+        document.getElementById('save-dfa').style.display = 'inline-block';
+        document.getElementById('reset-conversion').style.display = 'inline-block';
+        
+        // Afficher les boutons additionnels si ils existent
+        if (window.exportBtn) window.exportBtn.style.display = 'inline-block';
+        if (window.compareBtn) window.compareBtn.style.display = 'inline-block';
+    }
+    
+    toggleSteps() {
+        const stepsDiv = document.getElementById('conversion-steps');
+        if (stepsDiv.style.display === 'none') {
+            stepsDiv.style.display = 'block';
+            document.getElementById('show-steps').innerHTML = '<i class="fas fa-eye-slash mr-2"></i>Masquer les étapes';
+        } else {
+            stepsDiv.style.display = 'none';
+            document.getElementById('show-steps').innerHTML = '<i class="fas fa-list-ol mr-2"></i>Voir les étapes';
+        }
+    }
+    
+    previousStep() {
+        if (this.currentStep > 0) {
+            this.currentStep--;
+            this.updateStepDisplay();
+        }
+    }
+    
+    nextStep() {
+        const steps = document.querySelectorAll('.step-detail');
+        if (this.currentStep < steps.length - 1) {
+            this.currentStep++;
+            this.updateStepDisplay();
+        }
+    }
+    
+    updateStepDisplay() {
+        const steps = document.querySelectorAll('.step-detail');
+        steps.forEach((step, index) => {
+            step.classList.toggle('active', index === this.currentStep);
+        });
+        
+        this.updateStepNavigation();
+    }
+    
+    updateStepNavigation() {
+        const steps = document.querySelectorAll('.step-detail');
+        document.getElementById('step-counter').textContent = `Étape ${this.currentStep + 1} sur ${steps.length}`;
+        document.getElementById('prev-step').disabled = this.currentStep === 0;
+        document.getElementById('next-step').disabled = this.currentStep === steps.length - 1;
+    }
+    toggleAutoPlay() {
+        const button = document.getElementById('play-pause');
+        const steps = document.querySelectorAll('.step-detail');
+        
+        if (this.autoPlayInterval) {
+            clearInterval(this.autoPlayInterval);
+            this.autoPlayInterval = null;
+            button.innerHTML = '<i class="fas fa-play"></i>';
+        } else {
+            this.autoPlayInterval = setInterval(() => {
+                if (this.currentStep < steps.length - 1) {
+                    this.nextStep();
+                } else {
+                    this.toggleAutoPlay();
+                }
+            }, 2000);
+            button.innerHTML = '<i class="fas fa-pause"></i>';
+        }
+    }
+    
+    showSaveModal() {
+        document.getElementById('save-modal').classList.remove('hidden');
+        
+        // Remplir les informations
+        const info = document.getElementById('save-info');
+        info.innerHTML = `
+            <p><strong>États:</strong> ${this.conversionData.dfa.states.length}</p>
+            <p><strong>Transitions:</strong> ${this.conversionData.dfa.transitions.length}</p>
+            <p><strong>Alphabet:</strong> {${this.conversionData.dfa.alphabet.join(', ')}}</p>
+            <p><strong>État initial:</strong> ${this.conversionData.dfa.initialState}</p>
+        `;
+    }
+    
+    hideSaveModal() {
+        document.getElementById('save-modal').classList.add('hidden');
+    }
+    
+    async saveDFA() {
+        try {
+            const dfaName = document.getElementById('dfa-name').value.trim();
+            if (!dfaName) {
+                alert('Veuillez saisir un nom pour l\'AFD');
+                return;
+            }
+            
+            const response = await fetch(`/nfa-to-dfa/api/save/${this.nfaId}`, {
+                method: 'POST',
+                contenters: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: dfaName })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('AFD sauvegardé avec succès !');
+                this.hideSaveModal();
+                // Optionnel: rediriger vers la vue de l'automate
+                // window.location.href = `/automates/${data.automate_id}`;
+            } else {
+                throw new Error(data.error || 'Erreur lors de la sauvegarde');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la sauvegarde: ' + error.message);
+        }
+    }
+    
+    resetConversion() {
+        // Réinitialiser l'interface
+        document.getElementById('start-conversion').disabled = false;
+        document.getElementById('show-steps').style.display = 'none';
+        document.getElementById('save-dfa').style.display = 'none';
+        document.getElementById('reset-conversion').style.display = 'none';
+        
+        document.querySelector('.loading-spinner').style.display = 'none';
+        document.getElementById('dfa-canvas').style.display = 'none';
+        document.getElementById('dfa-placeholder').style.display = 'flex';
+        document.getElementById('dfa-info').style.display = 'none';
+        
+        document.getElementById('conversion-steps').style.display = 'none';
+        
+        // Suite du code JavaScript dans convert.html
+        this.updateProgress(0, 'Prêt à démarrer');
+        
+        // Réinitialiser les données
+        this.conversionData = null;
+        this.currentStep = 0;
+        
+        if (this.autoPlayInterval) {
+            clearInterval(this.autoPlayInterval);
+            this.autoPlayInterval = null;
+        }
+        
+        // Réinitialiser les contrôles de navigation
+        document.getElementById('step-counter').textContent = 'Étape 1 sur 1';
+        document.getElementById('prev-step').disabled = true;
+        document.getElementById('next-step').disabled = true;
+        document.getElementById('play-pause').innerHTML = '<i class="fas fa-play"></i>';
+    }
+    }
+    
+    // Initialisation au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+    const nfaId = {{ nfa.id }};
+    const converter = new NFAToDFAConverter(nfaId);
+    });
+    
+    // Fonctions utilitaires pour la gestiontion des modales
+    function showModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+    }
+    
+    function hideModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+    }
+    
+    // Animation des cartes d'étapes
+    function animateStepCards() {
+    const cards = document.querySelectorAll('.step-card');
+    cards.forEach((card, index) => {
+        setTimeout(() => {
+            card.classList.add('show');
+        }, index * 100);
+    });
+    }
+    
+    // Gestion des raccourcis clavier
+    document.addEventListener('keydown', function(e) {
+    const stepsVisible = document.getElementById('conversion-steps').style.display !== 'none';
+    
+    if (stepsVisible) {
+        switch(e.key) {
+            case 'ArrowLeft':
+                e.preventDefault();
+                document.getElementById('prev-step').click();
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                document.getElementById('next-step').click();
+                break;
+            case ' ':
+                e.preventDefault();
+                document.getElementById('play-pause').click();
+                break;
+            case 'Escape':
+                e.preventDefault();
+                hideModal('save-modal');
+                break;
+        }
+    }
+    });
+    
+    // Gestion du redimensionnement de la fenêtre
+    window.addEventListener('resize', function() {
+    // Redessiner les graphiques si nécessaire
+    const converter = window.converter;
+    if (converter && converter.conversionData) {
+        converter.renderNFA();
+        converter.renderDFA(converter.conversionData.dfa);
+    }
+    });
+    
+    // Fonction pour exporter les résultats
+    function exportConversionResults() {
+    const converter = window.converter;
+    if (!converter || !converter.conversionData) {
+        alert('Aucune conversion disponible pour l\'export');
+        return;
+    }
+    
+    const data = {
+        original_nfa: {
+            name: "{{ nfa.name }}",
+            states: {{ states | tojson }},
+            transitions: {{ transitions | tojson }},
+            alphabet: {{ nfa.alphabet | tojson }}
+        },
+        generated_dfa: converter.conversionData.dfa,
+        conversion_steps: converter.conversionData.conversion_steps || [],
+        export_date: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `conversion_${data.original_nfa.name}_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    }
+    
+    // Fonction pour importer des résultats de conversion
+    function importConversionResults(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            // Valider la structure des données
+            if (!data.original_nfa || !data.generated_dfa) {
+                throw new Error('Format de fichier invalide');
+            }
+            
+            // Charger les données
+            const converter = window.converter;
+            if (converter) {
+                converter.conversionData = { dfa: data.generated_dfa };
+                converter.renderDFA(data.generated_dfa);
+                
+                if (data.conversion_steps) {
+                    converter.renderSteps(data.conversion_steps);
+                }
+                
+                converter.showSuccessControls();
+                converter.updateProgress(100, 'Conversion importée avec succès');
+            }
+        } catch (error) {
+            alert('Erreur lors de l\'import: ' + error.message);
+        }
+    };
+    reader.readAsText(file);
+    }
+    
+    // Fonction pour comparer deux AFN/AFD
+    function compareAutomata() {
+    const converter = window.converter;
+    if (!converter || !converter.conversionData) {
+        alert('Aucune conversion disponible pour la comparaison');
+        return;
+    }
+    
+    const originalStates = {{ nfa.states|length }};
+    const dfaStates = converter.conversionData.dfa.states.length;
+    const originalTransitions = {{ nfa.transitions|length }};
+    const dfaTransitions = converter.conversionData.dfa.transitions.length;
+    
+    const comparison = {
+        states: {
+            original: originalStates,
+            dfa: dfaStates,
+            difference: dfaStates - originalStates,
+            ratio: (dfaStates / originalStates).toFixed(2)
+        },
+        transitions: {
+            original: originalTransitions,
+            dfa: dfaTransitions,
+            difference: dfaTransitions - originalTransitions,
+            ratio: (dfaTransitions / originalTransitions).toFixed(2)
+        }
+    };
+    
+    console.log('Comparaison AFN → AFD:', comparison);
+    return comparison;
+    }
+    
+    // Fonction pour valider l'équivalence des langages
+    async function validateLanguageEquivalence() {
+    const converter = window.converter;
+    if (!converter || !converter.conversionData) {
+        alert('Aucune conversion disponible pour la validation');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/nfa-to-dfa/api/validate/${converter.nfaId}`, {
+            method: 'POST',
+            contenters: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                dfa_data: converter.conversionData.dfa
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`Validation: ${result.equivalent ? 'Les langages sont équivalents' : 'Les langages ne sont pas équivalents'}`);
+        } else {
+            alert('Erreur lors de la validation: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Erreur de validation:', error);
+        alert('Erreur lors de la validation');
+    }
+    }
+    
+    // Gestionnaire d'événements pour les fonctionnalités avancées
+    document.addEventListener('DOMContentLoaded', function() {
+    // Ajouter les boutons d'export/import si nécessaire
+    const controlsDiv = document.querySelector('.bg-white.rounded-lg.shadow-md.p-6.mb-6 .flex.space-x-4');
+    
+    if (controlsDiv) {
+        // Bouton d'export
+        const exportBtn = document.createElement('button');
+        exportBtn.className = 'bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 transition-colors';
+        exportBtn.innerHTML = '<i class="fas fa-download mr-2"></i>Exporter';
+        exportBtn.style.display = 'none';
+        exportBtn.addEventListener('click', exportConversionResults);
+        
+        // Bouton d'import
+        const importBtn = document.createElement('button');
+        importBtn.className = 'bg-orange-600 text-white px-6 py-2 rounded hover:bg-orange-700 transition-colors';
+        importBtn.innerHTML = '<i class="fas fa-upload mr-2"></i>Importer';
+        importBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.addEventListener('change', importConversionResults);
+            input.click();
+        });
+        
+        // Bouton de comparaison
+        const compareBtn = document.createElement('button');
+        compareBtn.className = 'bg-teal-600 text-white px-6 py-2 rounded hover:bg-teal-700 transition-colors';
+        compareBtn.innerHTML = '<i class="fas fa-balance-scale mr-2"></i>Comparer';
+        compareBtn.style.display = 'none';
+        compareBtn.addEventListener('click', () => {
+            const comparison = compareAutomata();
+            if (comparison) {
+                alert(`Comparaison:\nÉtats: ${comparison.states.original} → ${comparison.states.dfa} (${comparison.states.difference >= 0 ? '+' : ''}${comparison.states.difference})\nTransitions: ${comparison.transitions.original} → ${comparison.transitions.dfa} (${comparison.transitions.difference >= 0 ? '+' : ''}${comparison.transitions.difference})`);
+            }
+        });
+        
+        controlsDiv.appendChild(exportBtn);
+        controlsDiv.appendChild(importBtn);
+        controlsDiv.appendChild(compareBtn);
+        
+        // Stocker les références pour pouvoir les afficher/masquer
+        window.exportBtn = exportBtn;
+        window.compareBtn = compareBtn;
+    }
+    });
+    
+    // Mise à jour de la méthode showSuccessControls pour inclure les nouveaux boutons
+    NFAToDFAConverter.prototype.showSuccessControls = function() {
+    document.getElementById('show-steps').style.display = 'inline-block';
+    document.getElementById('save-dfa').style.display = 'inline-block';
+    document.getElementById('reset-conversion').style.display = 'inline-block';
+    
+    // Afficher les boutons additionnels si ils existent
+    if (window.exportBtn) window.exportBtn.style.display = 'inline-block';
+    if (window.compareBtn) window.compareBtn.style.display = 'inline-block';
+    };
+    
+    // Stockage global de l'instance du convertisseur
+    window.converter = null;
+    
+    // Mise à jour de l'initialisation
+    document.addEventListener('DOMContentLoaded', function() {
+    const nfaId = {{ nfa.id }};
+    window.converter = new NFAToDFAConverter(nfaId);
+    });
+    </script>
+    
+    {% endblock %}

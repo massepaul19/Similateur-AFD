@@ -1,0 +1,146 @@
+{% extends "base/layout.html" %}
+
+{% block style %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/solve.css') }}">
+{% endblock style %}
+
+{% block content %}
+
+<main class="main-content">
+<div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-content">
+            <div class="header-info">
+                <h1><i class="fas fa-calculator"></i> Résolveur d'Expressions Régulières</h1>
+                <p>Résolvez des systèmes d'équations et obtenez l'expression régulière correspondante avec des étapes détaillées.</p>
+            </div>
+            <div class="header-actions">
+                <a href="#" class="action-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour
+                </a>
+                <button class="action-btn primary" onclick="showHelp()">
+                    <i class="fas fa-question-circle"></i>
+                    Aide
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Examples Section -->
+    <div class="examples-section">
+        <div class="section-header">
+            <div class="section-icon">
+                <i class="fas fa-lightbulb"></i>
+            </div>
+            <div class="section-title">Exemples</div>
+        </div>
+        <div class="example-grid">
+            <div class="example-card" onclick="loadExample(1)">
+                <div class="example-title">Exemple Simple</div>
+                <div class="example-equations">
+                    X₁ = aX₁ + bX₂ + ε<br>
+                    X₂ = cX₁ + dX₂
+                </div>
+                <div class="example-result">→ (a + bc*d)*</div>
+            </div>
+            <div class="example-card" onclick="loadExample(2)">
+                <div class="example-title">Automate à 3 États</div>
+                <div class="example-equations">
+                    X₁ = aX₂ + ε<br>
+                    X₂ = bX₃ + cX₁<br>
+                    X₃ = aX₁ + bX₂
+                </div>
+                <div class="example-result">→ a(bc + ca*b)*</div>
+            </div>
+            <div class="example-card" onclick="loadExample(3)">
+                <div class="example-title">Boucles et Alternatives</div>
+                <div class="example-equations">
+                    X₁ = aX₁ + bX₂ + cX₃ + ε<br>
+                    X₂ = dX₂ + eX₃<br>
+                    X₃ = fX₁ + gX₃
+                </div>
+                <div class="example-result">→ a*(b(d*e) + c)(g + fa*b(d*e))*fa*</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Input Section -->
+        <div class="input-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-edit"></i>
+                </div>
+                <div class="section-title">Système d'Équations</div>
+            </div>
+
+            <div class="equation-input">
+                <div class="input-group">
+                    <label class="input-label">Nouvelle équation :</label>
+                    <input type="text" class="input-field" id="equationInput" placeholder="Ex: X₁ = aX₁ + bX₂ + ε" />
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="addEquation()">
+                        <i class="fas fa-plus"></i>
+                        Ajouter
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearEquations()">
+                        <i class="fas fa-trash"></i>
+                        Effacer tout
+                    </button>
+                </div>
+            </div>
+
+            <div class="equation-list" id="equationList">
+                <div class="loading" style="display: none;" id="loadingEquations">
+                    Aucune équation ajoutée
+                </div>
+            </div>
+
+            <div class="controls" style="margin-top: 1.5rem;">
+                <button class="btn btn-primary" onclick="solveSystem()" id="solveBtn">
+                    <i class="fas fa-calculator"></i>
+                    Résoudre le Système
+                </button>
+            </div>
+        </div>
+
+        <!-- Output Section -->
+        <div class="output-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-code"></i>
+                </div>
+                <div class="section-title">Résultat</div>
+            </div>
+
+            <div class="result-container" id="resultContainer">
+                <div class="loading" style="color: var(--text-secondary);">
+                    <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+                    Ajoutez des équations et cliquez sur "Résoudre" pour voir le résultat
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Steps Section -->
+    <div class="steps-section" id="stepsSection" style="display: none;">
+        <div class="section-header">
+            <div class="section-icon">
+                <i class="fas fa-list-ol"></i>
+            </div>
+            <div class="section-title">Étapes de Résolution</div>
+        </div>
+        <div id="stepsContainer"></div>
+    </div>
+</div>
+</main>
+{% endblock content %}
+
+{% block script %}
+<link rel="stylesheet" href="{{ url_for('static', filename='js/solve.js') }}">
+{% endblock script %}

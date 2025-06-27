@@ -1,0 +1,363 @@
+toggleAutoPlay() {
+    const button = document.getElementById('play-pause');
+    const steps = document.querySelectorAll('.step-detail');
+    
+    if (this.autoPlayInterval) {
+        clearInterval(this.autoPlayInterval);
+        this.autoPlayInterval = null;
+        button.innerHTML = '<i class="fas fa-play"></i>';
+    } else {
+        this.autoPlayInterval = setInterval(() => {
+            if (this.currentStep < steps.length - 1) {
+                this.nextStep();
+            } else {
+                this.toggleAutoPlay();
+            }
+        }, 2000);
+        button.innerHTML = '<i class="fas fa-pause"></i>';
+    }
+}
+
+showSaveModal() {
+    document.getElementById('save-modal').classList.remove('hidden');
+    
+    // Remplir les informations
+    const info = document.getElementById('save-info');
+    info.innerHTML = `
+        <p><strong>États:</strong> ${this.conversionData.dfa.states.length}</p>
+        <p><strong>Transitions:</strong> ${this.conversionData.dfa.transitions.length}</p>
+        <p><strong>Alphabet:</strong> {${this.conversionData.dfa.alphabet.join(', ')}}</p>
+        <p><strong>État initial:</strong> ${this.conversionData.dfa.initialState}</p>
+    `;
+}
+
+hideSaveModal() {
+    document.getElementById('save-modal').classList.add('hidden');
+}
+
+async saveDFA() {
+    try {
+        const dfaName = document.getElementById('dfa-name').value.trim();
+        if (!dfaName) {
+            alert('Veuillez saisir un nom pour l\'AFD');
+            return;
+        }
+        
+        const response = await fetch(`/nfa-to-dfa/api/save/${this.nfaId}`, {
+            method: 'POST',
+            contenters: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: dfaName })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('AFD sauvegardé avec succès !');
+            this.hideSaveModal();
+            // Optionnel: rediriger vers la vue de l'automate
+            // window.location.href = `/automates/${data.automate_id}`;
+        } else {
+            throw new Error(data.error || 'Erreur lors de la sauvegarde');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la sauvegarde: ' + error.message);
+    }
+}
+
+resetConversion() {
+    // Réinitialiser l'interface
+    document.getElementById('start-conversion').disabled = false;
+    document.getElementById('show-steps').style.display = 'none';
+    document.getElementById('save-dfa').style.display = 'none';
+    document.getElementById('reset-conversion').style.display = 'none';
+    
+    document.querySelector('.loading-spinner').style.display = 'none';
+    document.getElementById('dfa-canvas').style.display = 'none';
+    document.getElementById('dfa-placeholder').style.display = 'flex';
+    document.getElementById('dfa-info').style.display = 'none';
+    
+    document.getElementById('conversion-steps').style.display = 'none';
+    
+    // Suite du code JavaScript dans convert.html
+    this.updateProgress(0, 'Prêt à démarrer');
+    
+    // Réinitialiser les données
+    this.conversionData = null;
+    this.currentStep = 0;
+    
+    if (this.autoPlayInterval) {
+        clearInterval(this.autoPlayInterval);
+        this.autoPlayInterval = null;
+    }
+    
+    // Réinitialiser les contrôles de navigation
+    document.getElementById('step-counter').textContent = 'Étape 1 sur 1';
+    document.getElementById('prev-step').disabled = true;
+    document.getElementById('next-step').disabled = true;
+    document.getElementById('play-pause').innerHTML = '<i class="fas fa-play"></i>';
+}
+}
+
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+const nfaId = {{ nfa.id }};
+const converter = new NFAToDFAConverter(nfaId);
+});
+
+// Fonctions utilitaires pour la gestiontion des modales
+function showModal(modalId) {
+document.getElementById(modalId).classList.remove('hidden');
+}
+
+function hideModal(modalId) {
+document.getElementById(modalId).classList.add('hidden');
+}
+
+// Animation des cartes d'étapes
+function animateStepCards() {
+const cards = document.querySelectorAll('.step-card');
+cards.forEach((card, index) => {
+    setTimeout(() => {
+        card.classList.add('show');
+    }, index * 100);
+});
+}
+
+// Gestion des raccourcis clavier
+document.addEventListener('keydown', function(e) {
+const stepsVisible = document.getElementById('conversion-steps').style.display !== 'none';
+
+if (stepsVisible) {
+    switch(e.key) {
+        case 'ArrowLeft':
+            e.preventDefault();
+            document.getElementById('prev-step').click();
+            break;
+        case 'ArrowRight':
+            e.preventDefault();
+            document.getElementById('next-step').click();
+            break;
+        case ' ':
+            e.preventDefault();
+            document.getElementById('play-pause').click();
+            break;
+        case 'Escape':
+            e.preventDefault();
+            hideModal('save-modal');
+            break;
+    }
+}
+});
+
+// Gestion du redimensionnement de la fenêtre
+window.addEventListener('resize', function() {
+// Redessiner les graphiques si nécessaire
+const converter = window.converter;
+if (converter && converter.conversionData) {
+    converter.renderNFA();
+    converter.renderDFA(converter.conversionData.dfa);
+}
+});
+
+// Fonction pour exporter les résultats
+function exportConversionResults() {
+const converter = window.converter;
+if (!converter || !converter.conversionData) {
+    alert('Aucune conversion disponible pour l\'export');
+    return;
+}
+
+const data = {
+    original_nfa: {
+        name: "{{ nfa.name }}",
+        states: {{ states | tojson }},
+        transitions: {{ transitions | tojson }},
+        alphabet: {{ nfa.alphabet | tojson }}
+    },
+    generated_dfa: converter.conversionData.dfa,
+    conversion_steps: converter.conversionData.conversion_steps || [],
+    export_date: new Date().toISOString()
+};
+
+const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = `conversion_${data.original_nfa.name}_${new Date().toISOString().split('T')[0]}.json`;
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+}
+
+// Fonction pour importer des résultats de conversion
+function importConversionResults(event) {
+const file = event.target.files[0];
+if (!file) return;
+
+const reader = new FileReader();
+reader.onload = function(e) {
+    try {
+        const data = JSON.parse(e.target.result);
+        
+        // Valider la structure des données
+        if (!data.original_nfa || !data.generated_dfa) {
+            throw new Error('Format de fichier invalide');
+        }
+        
+        // Charger les données
+        const converter = window.converter;
+        if (converter) {
+            converter.conversionData = { dfa: data.generated_dfa };
+            converter.renderDFA(data.generated_dfa);
+            
+            if (data.conversion_steps) {
+                converter.renderSteps(data.conversion_steps);
+            }
+            
+            converter.showSuccessControls();
+            converter.updateProgress(100, 'Conversion importée avec succès');
+        }
+    } catch (error) {
+        alert('Erreur lors de l\'import: ' + error.message);
+    }
+};
+reader.readAsText(file);
+}
+
+// Fonction pour comparer deux AFN/AFD
+function compareAutomata() {
+const converter = window.converter;
+if (!converter || !converter.conversionData) {
+    alert('Aucune conversion disponible pour la comparaison');
+    return;
+}
+
+const originalStates = {{ nfa.states|length }};
+const dfaStates = converter.conversionData.dfa.states.length;
+const originalTransitions = {{ nfa.transitions|length }};
+const dfaTransitions = converter.conversionData.dfa.transitions.length;
+
+const comparison = {
+    states: {
+        original: originalStates,
+        dfa: dfaStates,
+        difference: dfaStates - originalStates,
+        ratio: (dfaStates / originalStates).toFixed(2)
+    },
+    transitions: {
+        original: originalTransitions,
+        dfa: dfaTransitions,
+        difference: dfaTransitions - originalTransitions,
+        ratio: (dfaTransitions / originalTransitions).toFixed(2)
+    }
+};
+
+console.log('Comparaison AFN → AFD:', comparison);
+return comparison;
+}
+
+// Fonction pour valider l'équivalence des langages
+async function validateLanguageEquivalence() {
+const converter = window.converter;
+if (!converter || !converter.conversionData) {
+    alert('Aucune conversion disponible pour la validation');
+    return;
+}
+
+try {
+    const response = await fetch(`/nfa-to-dfa/api/validate/${converter.nfaId}`, {
+        method: 'POST',
+        contenters: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            dfa_data: converter.conversionData.dfa
+        })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+        alert(`Validation: ${result.equivalent ? 'Les langages sont équivalents' : 'Les langages ne sont pas équivalents'}`);
+    } else {
+        alert('Erreur lors de la validation: ' + result.error);
+    }
+} catch (error) {
+    console.error('Erreur de validation:', error);
+    alert('Erreur lors de la validation');
+}
+}
+
+// Gestionnaire d'événements pour les fonctionnalités avancées
+document.addEventListener('DOMContentLoaded', function() {
+// Ajouter les boutons d'export/import si nécessaire
+const controlsDiv = document.querySelector('.bg-white.rounded-lg.shadow-md.p-6.mb-6 .flex.space-x-4');
+
+if (controlsDiv) {
+    // Bouton d'export
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 transition-colors';
+    exportBtn.innerHTML = '<i class="fas fa-download mr-2"></i>Exporter';
+    exportBtn.style.display = 'none';
+    exportBtn.addEventListener('click', exportConversionResults);
+    
+    // Bouton d'import
+    const importBtn = document.createElement('button');
+    importBtn.className = 'bg-orange-600 text-white px-6 py-2 rounded hover:bg-orange-700 transition-colors';
+    importBtn.innerHTML = '<i class="fas fa-upload mr-2"></i>Importer';
+    importBtn.addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.addEventListener('change', importConversionResults);
+        input.click();
+    });
+    
+    // Bouton de comparaison
+    const compareBtn = document.createElement('button');
+    compareBtn.className = 'bg-teal-600 text-white px-6 py-2 rounded hover:bg-teal-700 transition-colors';
+    compareBtn.innerHTML = '<i class="fas fa-balance-scale mr-2"></i>Comparer';
+    compareBtn.style.display = 'none';
+    compareBtn.addEventListener('click', () => {
+        const comparison = compareAutomata();
+        if (comparison) {
+            alert(`Comparaison:\nÉtats: ${comparison.states.original} → ${comparison.states.dfa} (${comparison.states.difference >= 0 ? '+' : ''}${comparison.states.difference})\nTransitions: ${comparison.transitions.original} → ${comparison.transitions.dfa} (${comparison.transitions.difference >= 0 ? '+' : ''}${comparison.transitions.difference})`);
+        }
+    });
+    
+    controlsDiv.appendChild(exportBtn);
+    controlsDiv.appendChild(importBtn);
+    controlsDiv.appendChild(compareBtn);
+    
+    // Stocker les références pour pouvoir les afficher/masquer
+    window.exportBtn = exportBtn;
+    window.compareBtn = compareBtn;
+}
+});
+
+// Mise à jour de la méthode showSuccessControls pour inclure les nouveaux boutons
+NFAToDFAConverter.prototype.showSuccessControls = function() {
+document.getElementById('show-steps').style.display = 'inline-block';
+document.getElementById('save-dfa').style.display = 'inline-block';
+document.getElementById('reset-conversion').style.display = 'inline-block';
+
+// Afficher les boutons additionnels si ils existent
+if (window.exportBtn) window.exportBtn.style.display = 'inline-block';
+if (window.compareBtn) window.compareBtn.style.display = 'inline-block';
+};
+
+// Stockage global de l'instance du convertisseur
+window.converter = null;
+
+// Mise à jour de l'initialisation
+document.addEventListener('DOMContentLoaded', function() {
+const nfaId = {{ nfa.id }};
+window.converter = new NFAToDFAConverter(nfaId);
+});
+</script>
+
+{% endblock %}v

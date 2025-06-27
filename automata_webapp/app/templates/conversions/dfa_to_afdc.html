@@ -1,0 +1,233 @@
+{% extends "base/layout.html" %}
+
+{% block content %}
+<main class="main-content">
+    <div class="container mx-auto px-4 py-6">
+        <!-- En-tête avec gradient -->
+        <div class="mb-8 bg-gradient-to-r from-blue-600 to-emerald-700 rounded-xl p-6 text-white shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">
+                        <i class="fas fa-plus-circle mr-3"></i>
+                        Conversion AFD → AFDC
+                    </h1>
+                    <p class="text-blue-100 text-lg">
+                        Complétez vos Automates Finis Déterministes pour les rendre complets
+                    </p>
+                </div>
+                <div class="hidden md:block">
+                    <div class="bg-white/20 backdrop-blur-sm rounded-lg p-4">
+                        <i class="fas fa-puzzle-piece text-4xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if afds %}
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800">
+                    <i class="fas fa-list mr-3 text-blue-600"></i>
+                    AFD Disponibles pour Complétion
+                </h2>
+                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {{ afds|length }} automate{{ 's' if afds|length > 1 else '' }}
+                </span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for afd in afds %}
+                <div class="border border-gray-200 rounded-xl p-5 hover:shadow-lg hover:border-blue-300 transition-all duration-300 bg-gradient-to-br from-white to-gray-50">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-gray-800 text-lg">{{ afd.name }}</h3>
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full shadow-sm bg-blue-100 text-blue-800 border border-blue-200">
+                            AFD
+                        </span>
+                    </div>
+                    
+                    {% if afd.description %}
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-2 bg-gray-50 p-3 rounded-lg border-l-4 border-gray-300">
+                        {{ afd.description }}
+                    </p>
+                    {% endif %}
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="bg-blue-50 p-3 rounded-lg text-center">
+                            <div class="text-blue-600 font-bold text-xl">{{ afd.states|length }}</div>
+                            <div class="text-blue-600 text-xs font-medium">
+                                <i class="fas fa-circle mr-1"></i>États
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded-lg text-center">
+                            <div class="text-blue-600 font-bold text-xl">{{ afd.transitions|length }}</div>
+                            <div class="text-blue-600 text-xs font-medium">
+                                <i class="fas fa-arrow-right mr-1"></i>Transitions
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <span class="text-sm font-medium text-gray-600 mb-2 block">Alphabet:</span>
+                        <div class="flex flex-wrap gap-2">
+                            {% for symbol in afd.alphabet %}
+                            <span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-md border border-emerald-200">
+                                {{ symbol }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Indicateur de complétude -->
+                    <div class="mb-4">
+                        {% set is_complete = check_completeness(afd) %}
+                        <div class="flex items-center p-2 rounded-lg {% if is_complete %}bg-blue-100 border border-blue-200{% else %}bg-orange-100 border border-orange-200{% endif %}">
+                            <i class="fas {% if is_complete %}fa-check-circle text-blue-600{% else %}fa-exclamation-circle text-orange-600{% endif %} mr-2"></i>
+                            <span class="text-sm font-medium {% if is_complete %}text-blue-700{% else %}text-orange-700{% endif %}">
+                                {% if is_complete %}Déjà complet{% else %}Incomplet{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <a href="{{ url_for('nfa_to_dfa.complete_afd', afd_id=afd.id) }}" 
+                           class="w-full bg-gradient-to-r from-blue-600 to-emerald-600 text-white text-center py-3 px-4 rounded-lg hover:from-blue-700 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 flex items-center justify-center font-medium">
+                            <i class="fas fa-cogs mr-2"></i>{% if is_complete %}Voir la complétion{% else %}Compléter{% endif %}
+                        </a>
+                    </div>
+                    
+                    <div class="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-200 flex items-center">
+                        <i class="fas fa-clock mr-1"></i>
+                        Créé le {{ afd.created_at.strftime('%d/%m/%Y à %H:%M') }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl p-8 text-center shadow-lg">
+            <div class="mb-6">
+                <div class="bg-orange-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-orange-600 text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-orange-800 mb-2">Aucun AFD Disponible</h2>
+                <p class="text-orange-700 text-lg max-w-md mx-auto">
+                    Vous devez d'abord créer un Automate Fini Déterministe (AFD) pour pouvoir le compléter.
+                </p>
+            </div>
+            
+            <div class="space-y-4">
+                <a href="" 
+                   class="inline-block bg-gradient-to-r from-blue-600 to-emerald-600 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-semibold text-lg">
+                    <i class="fas fa-plus mr-2"></i>Créer un AFD
+                </a>
+                
+                <div class="bg-orange-100 rounded-lg p-4 max-w-lg mx-auto border border-orange-300">
+                    <p class="font-semibold text-orange-800 mb-2">
+                        <i class="fas fa-info-circle mr-2"></i>Qu'est-ce qu'un AFDC ?
+                    </p>
+                    <ul class="text-orange-700 text-sm space-y-1 text-left">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-orange-600 mr-2 mt-0.5"></i>
+                            AFD avec transition définie pour chaque état et symbole
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-orange-600 mr-2 mt-0.5"></i>
+                            Ajout d'un état puits si nécessaire
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-orange-600 mr-2 mt-0.5"></i>
+                            Facilite les opérations sur les langages
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Section d'aide -->
+        <div class="bg-gradient-to-br from-blue-50 to-emerald-50 border border-blue-200 rounded-xl p-6 shadow-md">
+            <h3 class="text-xl font-bold text-blue-800 mb-4 flex items-center">
+                <div class="bg-blue-100 rounded-full p-2 mr-3">
+                    <i class="fas fa-lightbulb text-blue-600"></i>
+                </div>
+                À propos de la complétion AFD → AFDC
+            </h3>
+            <div class="bg-white rounded-lg p-4 border border-blue-100">
+                <p class="text-blue-800 font-medium mb-3">
+                    La complétion d'un AFD consiste à <strong>ajouter les transitions manquantes</strong> :
+                </p>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <div class="flex items-start text-blue-700">
+                            <i class="fas fa-arrow-right text-blue-500 mr-2 mt-1"></i>
+                            <span>Identifier les transitions manquantes</span>
+                        </div>
+                        <div class="flex items-start text-blue-700">
+                            <i class="fas fa-arrow-right text-blue-500 mr-2 mt-1"></i>
+                            <span>Ajouter un état puits si nécessaire</span>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex items-start text-blue-700">
+                            <i class="fas fa-arrow-right text-blue-500 mr-2 mt-1"></i>
+                            <span>Connecter toutes les transitions manquantes au puits</span>
+                        </div>
+                        <div class="flex items-start text-blue-700">
+                            <i class="fas fa-arrow-right text-blue-500 mr-2 mt-1"></i>
+                            <span>L'AFDC reconnaît le même langage</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section démarche algorithme -->
+        <div class="mt-8 bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <div class="bg-gray-100 rounded-full p-2 mr-3">
+                    <i class="fas fa-cogs text-gray-600"></i>
+                </div>
+                Démarche de l'algorithme de complétion
+            </h3>
+            
+            <div class="space-y-4">
+                <div class="flex items-start p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 flex-shrink-0">1</div>
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">Analyse de complétude</h4>
+                        <p class="text-gray-600">Vérifier pour chaque état et chaque symbole de l'alphabet s'il existe une transition sortante.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 flex-shrink-0">2</div>
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">Création de l'état puits</h4>
+                        <p class="text-gray-600">Si des transitions manquent, créer un nouvel état puits (non-final) qui boucle sur lui-même.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 flex-shrink-0">3</div>
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">Ajout des transitions manquantes</h4>
+                        <p class="text-gray-600">Rediriger toutes les transitions manquantes vers l'état puits pour compléter l'automate.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block style %}
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+{% endblock style %}

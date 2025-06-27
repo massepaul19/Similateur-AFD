@@ -1,0 +1,685 @@
+<!-- templates/minimization/index.html -->
+{% extends "base/layout.html" %}
+
+{% block title %}Minimisation d'Automates{% endblock %}
+
+{% block style %}
+<style>
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .main-grid {
+        display: grid;
+        grid-template-columns: 300px 1fr 400px;
+        gap: 20px;
+        height: calc(100vh - 120px);
+    }
+
+    .panel {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .panel h3 {
+        margin-bottom: 15px;
+        color: #2c3e50;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 8px;
+    }
+
+    /* Liste des automates */
+    .automate-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .automate-item {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+    }
+
+    .automate-item:hover {
+        border-color: #3498db;
+        background: #e3f2fd;
+        transform: translateY(-2px);
+    }
+
+    .automate-item.selected {
+        border-color: #2196f3;
+        background: #bbdefb;
+        box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+    }
+
+    .automate-name {
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 4px;
+    }
+
+    .automate-type {
+        background: #3498db;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        display: inline-block;
+        margin-bottom: 6px;
+    }
+
+    .automate-info {
+        font-size: 0.9em;
+        color: #666;
+    }
+
+    .btn-create {
+        background: #27ae60;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        width: 100%;
+        margin-bottom: 15px;
+        font-size: 14px;
+        transition: background 0.3s;
+    }
+
+    .btn-create:hover {
+        background: #219a52;
+    }
+
+    .btn-minimize {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: background 0.3s;
+        margin-top: 8px;
+        width: 100%;
+    }
+
+    .btn-minimize:hover {
+        background: #c0392b;
+    }
+
+    .btn-minimize:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+    }
+
+    /* Explication de la méthode */
+    .method-explanation {
+        line-height: 1.6;
+    }
+
+    .method-explanation h4 {
+        color: #2c3e50;
+        margin: 15px 0 8px 0;
+    }
+
+    .method-explanation ul {
+        padding-left: 20px;
+        margin-bottom: 15px;
+    }
+
+    .method-explanation li {
+        margin-bottom: 8px;
+    }
+
+    .algorithm-steps {
+        background: #f8f9fa;
+        border-left: 4px solid #3498db;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 0 6px 6px 0;
+    }
+
+    /* Résultats */
+    .results-section {
+        display: none;
+    }
+
+    .results-section.active {
+        display: block;
+    }
+
+    .reduction-stats {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .reduction-stats h4 {
+        margin: 0 0 10px 0;
+    }
+
+    .reduction-number {
+        font-size: 2em;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+
+    .steps-container {
+        margin-bottom: 20px;
+    }
+
+    .step-item {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .step-title {
+        font-weight: bold;
+        color: #495057;
+        margin-bottom: 8px;
+    }
+
+    .partition {
+        display: inline-block;
+        background: #e9ecef;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 4px 8px;
+        margin: 2px;
+        font-family: monospace;
+    }
+
+    .canvas-container {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: #fafafa;
+        height: 300px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .canvas-title {
+        background: #495057;
+        color: white;
+        padding: 8px 12px;
+        margin: -20px -20px 15px -20px;
+        font-weight: bold;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+
+    .loading::after {
+        content: '';
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #6c757d;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+        margin-left: 10px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        border-radius: 6px;
+        padding: 12px;
+        margin: 10px 0;
+    }
+
+    .success-message {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        border-radius: 6px;
+        padding: 12px;
+        margin: 10px 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+        .main-grid {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto auto auto;
+            height: auto;
+        }
+        
+        .panel {
+            max-height: 400px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="main-content"> 
+<div class="container">
+    <h1>Minimisation d'Automates Finis Déterministes Complets</h1>
+    
+    <div class="main-grid">
+        <!-- Panel gauche: Liste des automates -->
+        <div class="panel">
+            <h3>📋 Automates AFDC</h3>
+            
+            <button class="btn-create" onclick="window.location.href='/automates/create'">
+                ➕ Créer un nouvel automate
+            </button>
+            
+            <div class="automate-list">
+                {% if automates %}
+                    {% for automate in automates %}
+                    <div class="automate-item" data-id="{{ automate.id }}" onclick="selectAutomate({{ automate.id }})">
+                        <div class="automate-name">{{ automate.name }}</div>
+                        <div class="automate-type">{{ automate.type.upper() }}</div>
+                        <div class="automate-info">
+                            <div>États: {{ automate.states|length }}</div>
+                            <div>Alphabet: {{ automate.alphabet|join(', ') }}</div>
+                            <div>Créé: {{ automate.created_at.strftime('%d/%m/%Y') }}</div>
+                        </div>
+                        <button class="btn-minimize" onclick="minimizeAutomate({{ automate.id }}); event.stopPropagation();">
+                            🔄 Minimiser
+                        </button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; color: #666; padding: 20px;">
+                        <p>Aucun automate AFDC trouvé.</p>
+                        <p>Créez-en un pour commencer.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Panel central: Explication de la méthode -->
+        <div class="panel">
+            <h3>📚 Méthode de Minimisation (Algorithme de Moore)</h3>
+            
+            <div class="method-explanation">
+                <p>La minimisation d'un automate fini déterministe complet (AFDC) permet de réduire le nombre d'états tout en conservant le même langage reconnu.</p>
+                
+                <h4>🎯 Objectif</h4>
+                <p>Éliminer les états équivalents (indistinguables) pour obtenir l'automate minimal équivalent.</p>
+                
+                <h4>⚙️ Algorithme de Moore</h4>
+                <div class="algorithm-steps">
+                    <strong>Étapes de l'algorithme :</strong>
+                    <ol>
+                        <li><strong>Partition initiale</strong> : Séparer les états finaux des états non-finaux</li>
+                        <li><strong>Raffinage itératif</strong> : Pour chaque partition, grouper les états ayant le même comportement</li>
+                        <li><strong>Test d'équivalence</strong> : Deux états sont équivalents s'ils ont les mêmes transitions vers les mêmes partitions</li>
+                        <li><strong>Construction</strong> : Créer le nouvel automate avec une classe d'équivalence = un état</li>
+                    </ol>
+                </div>
+                
+                <h4>📋 Conditions requises</h4>
+                <ul>
+                    <li>L'automate doit être <strong>déterministe</strong></li>
+                    <li>L'automate doit être <strong>complet</strong> (transition définie pour chaque état/symbole)</li>
+                    <li>Pas de transitions epsilon</li>
+                </ul>
+                
+                <h4>✨ Avantages</h4>
+                <ul>
+                    <li>Réduction de la complexité (moins d'états)</li>
+                    <li>Optimisation de l'espace mémoire</li>
+                    <li>Amélioration des performances d'exécution</li>
+                    <li>Forme canonique unique</li>
+                </ul>
+                
+                <h4>🔍 Complexité</h4>
+                <p><strong>Temps :</strong> O(kn²) où n = nombre d'états, k = taille de l'alphabet<br>
+                <strong>Espace :</strong> O(n²) pour la table de distinguabilité</p>
+            </div>
+        </div>
+        
+        <!-- Panel droit: Résultats -->
+        <div class="panel">
+            <h3>📊 Résultats de la Minimisation</h3>
+            
+            <div id="no-selection" style="text-align: center; color: #666; padding: 40px;">
+                <p>👈 Sélectionnez un automate et cliquez sur "Minimiser" pour voir les résultats.</p>
+            </div>
+            
+            <div id="loading" class="loading" style="display: none;">
+                Minimisation en cours...
+            </div>
+            
+            <div id="error-container" style="display: none;"></div>
+            
+            <div id="results" class="results-section">
+                <!-- Stats de réduction -->
+                <div id="reduction-stats" class="reduction-stats">
+                    <h4>Réduction des états</h4>
+                    <div class="reduction-number" id="reduction-percentage">0%</div>
+                    <div>
+                        <span id="original-states">0</span> états → 
+                        <span id="minimized-states">0</span> états
+                    </div>
+                </div>
+                
+                <!-- Étapes de minimisation -->
+                <div class="steps-container">
+                    <h4>📝 Étapes de l'algorithme</h4>
+                    <div id="steps-list"></div>
+                </div>
+                
+                <!-- Automate original -->
+                <div class="canvas-container">
+                    <div class="canvas-title">🔵 Automate Original</div>
+                    <canvas id="original-canvas" width="360" height="240"></canvas>
+                </div>
+                
+                <!-- Automate minimisé -->
+                <div class="canvas-container" style="margin-top: 15px;">
+                    <div class="canvas-title">🟢 Automate Minimisé</div>
+                    <canvas id="minimized-canvas" width="360" height="240"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</main>
+{% endblock %}
+
+{% block script %}
+<script>
+    let selectedAutomateId = null;
+    let minimizationResult = null;
+
+    function selectAutomate(id) {
+        // Enlever la sélection précédente
+        document.querySelectorAll('.automate-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        // Sélectionner le nouvel item
+        document.querySelector(`[data-id="${id}"]`).classList.add('selected');
+        selectedAutomateId = id;
+        
+        // Réinitialiser l'affichage des résultats
+        resetResults();
+    }
+
+    function resetResults() {
+        document.getElementById('no-selection').style.display = 'block';
+        document.getElementById('results').classList.remove('active');
+        document.getElementById('error-container').style.display = 'none';
+        minimizationResult = null;
+    }
+
+    async function minimizeAutomate(id) {
+        if (!id) return;
+        
+        // Sélectionner l'automate si pas déjà fait
+        if (selectedAutomateId !== id) {
+            selectAutomate(id);
+        }
+        
+        // Afficher le loading
+        document.getElementById('no-selection').style.display = 'none';
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error-container').style.display = 'none';
+        document.getElementById('results').classList.remove('active');
+        
+        try {
+            const response = await fetch(`/minimization/minimize/${id}`);
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Erreur lors de la minimisation');
+            }
+            
+            minimizationResult = data;
+            displayResults(data);
+            
+        } catch (error) {
+            console.error('Erreur:', error);
+            showError(error.message);
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function displayResults(data) {
+        // Masquer le message de sélection
+        document.getElementById('no-selection').style.display = 'none';
+        
+        // Afficher les stats de réduction
+        document.getElementById('reduction-percentage').textContent = data.reduction.reduction_percentage + '%';
+        document.getElementById('original-states').textContent = data.reduction.original_states;
+        document.getElementById('minimized-states').textContent = data.reduction.minimized_states;
+        
+        // Afficher les étapes
+        displaySteps(data.steps);
+        
+        // Dessiner les automates
+        drawAutomate('original-canvas', data.original, '#3498db');
+        drawAutomate('minimized-canvas', data.minimized, '#27ae60');
+        
+        // Afficher la section résultats
+        document.getElementById('results').classList.add('active');
+    }
+
+    function displaySteps(steps) {
+        const container = document.getElementById('steps-list');
+        container.innerHTML = '';
+        
+        steps.forEach(step => {
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'step-item';
+            
+            const title = document.createElement('div');
+            title.className = 'step-title';
+            title.textContent = step.description;
+            
+            const partitions = document.createElement('div');
+            step.partitions.forEach(partition => {
+                const partitionSpan = document.createElement('span');
+                partitionSpan.className = 'partition';
+                partitionSpan.textContent = `{${partition.join(', ')}}`;
+                partitions.appendChild(partitionSpan);
+            });
+            
+            stepDiv.appendChild(title);
+            stepDiv.appendChild(partitions);
+            container.appendChild(stepDiv);
+        });
+    }
+
+    function drawAutomate(canvasId, automateData, color) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        
+        // Nettoyer le canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Configurer le style
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const states = automateData.states || [];
+        const transitions = automateData.transitions || [];
+        
+        // Dessiner les transitions (en premier pour qu'elles soient sous les états)
+        ctx.lineWidth = 2;
+        transitions.forEach(([transitionKey, destinations]) => {
+            const [fromState, symbol] = transitionKey.split(',');
+            destinations.forEach(toState => {
+                const fromStateObj = states.find(s => s.id === fromState);
+                const toStateObj = states.find(s => s.id === toState);
+                
+                if (fromStateObj && toStateObj) {
+                    // Position des centres des états
+                    const fromX = (fromStateObj.x || 0) * 0.8 + 30;
+                    const fromY = (fromStateObj.y || 0) * 0.6 + 30;
+                    const toX = (toStateObj.x || 0) * 0.8 + 30;
+                    const toY = (toStateObj.y || 0) * 0.6 + 30;
+                    
+                    // Dessiner la flèche
+                    drawArrow(ctx, fromX, fromY, toX, toY, symbol, fromState === toState);
+                }
+            });
+        });
+        
+        // Dessiner les états
+        ctx.lineWidth = 2;
+        states.forEach(state => {
+            const x = (state.x || 0) * 0.8 + 30;
+            const y = (state.y || 0) * 0.6 + 30;
+            const radius = 20;
+            
+            // Cercle principal
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // État final (double cercle)
+            if (state.isFinal) {
+                ctx.beginPath();
+                ctx.arc(x, y, radius - 4, 0, 2 * Math.PI);
+                ctx.stroke();
+            }
+            
+            // État initial (flèche entrante)
+            if (state.isInitial) {
+                ctx.beginPath();
+                ctx.moveTo(x - radius - 15, y);
+                ctx.lineTo(x - radius, y);
+                ctx.stroke();
+                
+                // Pointe de flèche
+                ctx.beginPath();
+                ctx.moveTo(x - radius, y);
+                ctx.lineTo(x - radius - 5, y - 3);
+                ctx.moveTo(x - radius, y);
+                ctx.lineTo(x - radius - 5, y + 3);
+                ctx.stroke();
+            }
+            
+            // Nom de l'état
+            ctx.fillStyle = color;
+            ctx.fillText(state.id, x, y);
+            
+            // États originaux pour l'automate minimisé
+            if (state.originalStates && state.originalStates.length > 1) {
+                ctx.font = '8px Arial';
+                ctx.fillText(`{${state.originalStates.join(',')}}`, x, y + 30);
+                ctx.font = '12px Arial';
+            }
+        });
+    }
+
+    function drawArrow(ctx, fromX, fromY, toX, toY, label, isSelfLoop) {
+        if (isSelfLoop) {
+            // Boucle sur soi-même
+            const radius = 15;
+            const centerX = fromX + radius;
+            const centerY = fromY - radius;
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Flèche
+            ctx.beginPath();
+            ctx.moveTo(centerX + radius - 3, centerY - 3);
+            ctx.lineTo(centerX + radius, centerY);
+            ctx.lineTo(centerX + radius - 3, centerY + 3);
+            ctx.stroke();
+            
+            // Label
+            ctx.fillText(label, centerX, centerY - radius - 8);
+        } else {
+            // Flèche normale
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+            const radius = 20;
+            
+            // Ajuster les points de départ et d'arrivée
+            const startX = fromX + radius * Math.cos(angle);
+            const startY = fromY + radius * Math.sin(angle);
+            const endX = toX - radius * Math.cos(angle);
+            const endY = toY - radius * Math.sin(angle);
+            
+            // Ligne
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            
+            // Pointe de flèche
+            const arrowLength = 8;
+            const arrowAngle = Math.PI / 6;
+            
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(
+                endX - arrowLength * Math.cos(angle - arrowAngle),
+                endY - arrowLength * Math.sin(angle - arrowAngle)
+            );
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(
+                endX - arrowLength * Math.cos(angle + arrowAngle),
+                endY - arrowLength * Math.sin(angle + arrowAngle)
+            );
+            ctx.stroke();
+            
+            // Label au milieu de la flèche
+            const midX = (startX + endX) / 2;
+            const midY = (startY + endY) / 2;
+            
+            // Fond blanc pour le label
+            const labelWidth = ctx.measureText(label).width + 4;
+            ctx.fillStyle = 'white';
+            ctx.fillRect(midX - labelWidth/2, midY - 8, labelWidth, 16);
+            
+            // Label
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.fillText(label, midX, midY);
+        }
+    }
+
+    function showError(message) {
+        const container = document.getElementById('error-container');
+        container.innerHTML = `<div class="error-message">❌ ${message}</div>`;
+        container.style.display = 'block';
+        document.getElementById('no-selection').style.display = 'none';
+    }
+
+    // Auto-sélectionner le premier automate s'il y en a un
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstAutomate = document.querySelector('.automate-item');
+        if (firstAutomate) {
+            const id = firstAutomate.getAttribute('data-id');
+            selectAutomate(parseInt(id));
+        }
+    });
+</script>
+{% endblock %}
