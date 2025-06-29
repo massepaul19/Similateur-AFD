@@ -20,8 +20,8 @@
         
         <div class="user-section">
             <div class="user-info">
-                <div class="user-avatar">KK</div>
-                <span>KEMCHE KEVIN </span>
+                <div class="user-avatar">G9</div>
+                <span> Groupe 9 </span>
             </div>
             <button class="logout-btn">
                 <i class="fas fa-sign-out-alt"></i>
@@ -130,19 +130,21 @@
                         <i class="fas fa-code"></i>
                         Extraction Regex
                     </div>
-                    <div class="submenu-item" onclick="window.location.href='{{url_for("main.resoudre_systeme")}}'">
+                    
+                    <div class="submenu-item" onclick="window.location.href='http://localhost:5001'">
                         <i class="fas fa-equals"></i>
                         Résoudre système
                     </div>                    
-                    <a href="{{ url_for('operations.index') }}" class="submenu-item">
+                    
+                    <a href="http://localhost:5003" class="submenu-item">
                         <i class="fas fa-compress-alt"></i>
                         Minimisation
                     </a>
                     
-                    <div class="submenu-item">
+                    <a href="http://localhost:5003" class="submenu-item">
                         <i class="fas fa-cut"></i>
                         Émondage
-                    </div>
+                    </a>
                     
                     <!-- Clôtures -->
                     <div class="submenu-item" onclick="toggleSubmenu(this)">
@@ -214,14 +216,14 @@
                     <i class="fas fa-chevron-right chevron"></i>
                 </div>
                 <div class="submenu">
-                    <div class="submenu-item">
+                    <a href="http://localhost:5003" class="submenu-item">
                         <i class="fas fa-sitemap"></i>
                         Thompson
-                    </div>
-                    <div class="submenu-item">
+                    </a>
+                    <a href="http://localhost:5003" class="submenu-item">
                         <i class="fas fa-network-wired"></i>
                         Glushkov
-                    </div>
+                    </a>
                     <div class="submenu-item">
                         <i class="fas fa-adjust"></i>
                         Canonisation
@@ -253,6 +255,8 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Mon compte -->
             <div class="menu-section">
                 <div class="menu-header" onclick="toggleMenu(this)">
                     <div>
@@ -262,7 +266,14 @@
                     <i class="fas fa-chevron-right chevron"></i>
                 </div>
                 <div class="submenu">
-                    d
+                    <div class="submenu-item">
+                        <i class="fas fa-user-edit"></i>
+                        Profil
+                    </div>
+                    <div class="submenu-item">
+                        <i class="fas fa-key"></i>
+                        Mot de passe
+                    </div>
                 </div>              
             </div>
         </div>
