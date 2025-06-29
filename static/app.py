@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, jsonify
 import re
 from typing import Dict, List, Set, Tuple
 from utils import distribute_concatenation , simplify_expression
-from decimal import Decimal, ROUND_HALF_UP
 
 app = Flask(__name__)
 
@@ -200,10 +199,8 @@ class AutomatonSolver:
             return "ε"
         elif solution and solution.endswith("*ε"):
             cleaned_solution = solution.replace("*ε", "*")
-            # Utiliser un incrément entier pour éviter les erreurs d'arrondi
-            sub_step = f"{step_counter}.1"
             step_by_step.append({
-                'step': sub_step,
+                'step': step_counter + 0.1,
                 'method': "Élimination de ε",
                 'description': "ε est neutre par concaténation",
                 'before': solution,
@@ -212,9 +209,8 @@ class AutomatonSolver:
             return cleaned_solution
         elif solution and solution.endswith("*(ε)"):
             cleaned_solution = solution.replace("*(ε)", "*")
-            sub_step = f"{step_counter}.1"
             step_by_step.append({
-                'step': sub_step,
+                'step': step_counter + 0.1,
                 'method': "Élimination de ε",
                 'description': "ε est neutre par concaténation : A*(ε) = A*",
                 'before': solution,
@@ -240,7 +236,6 @@ class AutomatonSolver:
         step_counter = start_step
         max_iterations = 20  # Protection contre les boucles infinies
         iteration = 0
-        sub_step_counter = 1  # Compteur pour les sous-étapes
         
         while iteration < max_iterations:
             iteration += 1
@@ -273,11 +268,8 @@ class AutomatonSolver:
                         if cleaned_solution != current_solution:
                             final_solutions[var] = cleaned_solution
                         
-                        # Utiliser un format de numérotation propre
-                        current_step = f"{step_counter}.{sub_step_counter}"
-                        
                         step_by_step.append({
-                            'step': current_step,
+                            'step': step_counter,
                             'method': 'Substitution finale',
                             'description': f'Substitution des variables dans {var}',
                             'variable': var,
@@ -285,7 +277,7 @@ class AutomatonSolver:
                             'after': final_solutions[var]
                         })
                         
-                        sub_step_counter += 1
+                        step_counter += 0.1
             
             # Si aucun changement n'a été effectué, on peut s'arrêter
             if not has_changes:
@@ -365,11 +357,8 @@ class AutomatonSolver:
             
             # Substituer dans toutes les équations restantes
             if working_equations:
-                # Utiliser un format de sous-étape propre
-                substitution_step_num = f"{step_counter}.5"
-                
                 substitution_step = {
-                    'step': substitution_step_num,
+                    'step': step_counter + 0.5,
                     'method': "Substitution",
                     'description': f"Substitution de {variable} = {solution} dans toutes les équations restantes",
                     'substitutions': []

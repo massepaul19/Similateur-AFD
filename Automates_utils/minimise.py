@@ -25,10 +25,12 @@ class MinimisationAutomate:
         # Convertir les transitions en dictionnaire plus pratique
         self.delta = {}
         for cle, destinations in self.transitions.items():
-            if ',' in cle:
-                etat, symbole = cle.split(',', 1)
-                if destinations:  # Si il y a des destinations
-                    self.delta[(etat, symbole)] = destinations[0]  # AFD: une seule destination
+            if ',' in cle and destinations:  # Vérifier que destinations n'est pas vide
+                parts = cle.split(',', 1)
+                if len(parts) == 2:
+                    etat, symbole = parts
+                    # AFD: une seule destination
+                    self.delta[(etat, symbole)] = destinations[0]
     
     def supprimer_etats_inaccessibles(self):
         """Supprime les états inaccessibles depuis les états initiaux"""
@@ -47,7 +49,7 @@ class MinimisationAutomate:
             for symbole in self.alphabet:
                 if (etat_courant, symbole) in self.delta:
                     etat_suivant = self.delta[(etat_courant, symbole)]
-                    if etat_suivant not in accessibles:
+                    if etat_suivant not in accessibles and etat_suivant in self.etats:
                         accessibles.add(etat_suivant)
                         file.append(etat_suivant)
         
@@ -68,51 +70,57 @@ class MinimisationAutomate:
     
     def construire_table_distinguabilite(self):
         """Construit la table de distinguabilité pour identifier les états équivalents"""
-        etats_liste = list(self.etats)
+        etats_liste = sorted(list(self.etats))  # Tri pour consistance
         n = len(etats_liste)
         
-        # Table de distinguabilité (matrice triangulaire supérieure)
+        # Table de distinguabilité
         distinguable = {}
         
         # Initialisation: marquer les paires (final, non-final) comme distinguables
         for i in range(n):
             for j in range(i + 1, n):
                 etat1, etat2 = etats_liste[i], etats_liste[j]
+                cle = (etat1, etat2) if etat1 < etat2 else (etat2, etat1)
+                
                 # Deux états sont distinguables s'ils ont des caractères de finalité différents
                 if (etat1 in self.etats_finaux) != (etat2 in self.etats_finaux):
-                    distinguable[(etat1, etat2)] = True
+                    distinguable[cle] = True
                 else:
-                    distinguable[(etat1, etat2)] = False
+                    distinguable[cle] = False
         
         # Algorithme itératif pour propager la distinguabilité
         changement = True
-        while changement:
+        iterations = 0
+        max_iterations = n * n  # Éviter les boucles infinies
+        
+        while changement and iterations < max_iterations:
             changement = False
+            iterations += 1
             
             for i in range(n):
                 for j in range(i + 1, n):
                     etat1, etat2 = etats_liste[i], etats_liste[j]
+                    cle = (etat1, etat2) if etat1 < etat2 else (etat2, etat1)
                     
-                    if not distinguable.get((etat1, etat2), False):
+                    if not distinguable.get(cle, False):
                         # Vérifier si les états sont distinguables par leurs transitions
                         for symbole in self.alphabet:
                             dest1 = self.delta.get((etat1, symbole))
                             dest2 = self.delta.get((etat2, symbole))
                             
-                            # Si les destinations sont différentes et distinguables
+                            # Cas où les destinations sont différentes
                             if dest1 != dest2:
+                                # Si l'un a une transition et l'autre non
                                 if dest1 is None or dest2 is None:
-                                    # L'un a une transition, l'autre non
-                                    distinguable[(etat1, etat2)] = True
+                                    distinguable[cle] = True
                                     changement = True
                                     break
-                                else:
-                                    # Ordonner pour accéder à la table
-                                    if dest1 > dest2:
-                                        dest1, dest2 = dest2, dest1
-                                    
-                                    if distinguable.get((dest1, dest2), False):
-                                        distinguable[(etat1, etat2)] = True
+                                # Si les deux ont des transitions vers des états différents
+                                elif dest1 != dest2:
+                                    # Vérifier si les destinations sont distinguables
+                                    cle_dest = (dest1, dest2) if dest1 < dest2 else (dest2, dest1)
+                                    if distinguable.get(cle_dest, False):
+                                        distinguable[cle] = True
                                         changement = True
                                         break
         
@@ -120,7 +128,7 @@ class MinimisationAutomate:
     
     def regrouper_etats_equivalents(self, table_distinguabilite):
         """Regroupe les états équivalents en classes d'équivalence"""
-        etats_liste = list(self.etats)
+        etats_liste = sorted(list(self.etats))
         n = len(etats_liste)
         
         # Union-Find pour regrouper les états équivalents
@@ -140,7 +148,8 @@ class MinimisationAutomate:
         for i in range(n):
             for j in range(i + 1, n):
                 etat1, etat2 = etats_liste[i], etats_liste[j]
-                if not table_distinguabilite.get((etat1, etat2), False):
+                cle = (etat1, etat2) if etat1 < etat2 else (etat2, etat1)
+                if not table_distinguabilite.get(cle, False):
                     union(etat1, etat2)
         
         # Construire les classes d'équivalence
@@ -158,8 +167,13 @@ class MinimisationAutomate:
         nouveaux_etats = []
         
         for representant, membres in classes_equivalence.items():
-            # Le nom de la nouvelle classe est la liste triée des membres
-            nom_classe = '{' + ','.join(sorted(membres)) + '}'
+            # Le nom de la nouvelle classe - utiliser le premier état trié comme nom
+            membres_tries = sorted(membres)
+            if len(membres_tries) == 1:
+                nom_classe = membres_tries[0]
+            else:
+                nom_classe = '{' + ','.join(membres_tries) + '}'
+            
             nouveaux_etats.append(nom_classe)
             
             for membre in membres:
@@ -168,29 +182,35 @@ class MinimisationAutomate:
         # Nouveaux états initiaux
         nouveaux_etats_initiaux = []
         for etat_initial in self.etats_initiaux:
-            classe = etat_vers_classe[etat_initial]
-            if classe not in nouveaux_etats_initiaux:
+            classe = etat_vers_classe.get(etat_initial)
+            if classe and classe not in nouveaux_etats_initiaux:
                 nouveaux_etats_initiaux.append(classe)
         
         # Nouveaux états finaux
         nouveaux_etats_finaux = []
         for etat_final in self.etats_finaux:
-            classe = etat_vers_classe[etat_final]
-            if classe not in nouveaux_etats_finaux:
+            classe = etat_vers_classe.get(etat_final)
+            if classe and classe not in nouveaux_etats_finaux:
                 nouveaux_etats_finaux.append(classe)
         
         # Nouvelles transitions
         nouvelles_transitions = {}
+        transitions_vues = set()
+        
         for (etat, symbole), destination in self.delta.items():
-            classe_source = etat_vers_classe[etat]
-            classe_dest = etat_vers_classe[destination]
-            
-            cle = f"{classe_source},{symbole}"
-            if cle not in nouvelles_transitions:
-                nouvelles_transitions[cle] = [classe_dest]
+            if etat in etat_vers_classe and destination in etat_vers_classe:
+                classe_source = etat_vers_classe[etat]
+                classe_dest = etat_vers_classe[destination]
+                
+                # Éviter les doublons
+                transition_key = (classe_source, symbole)
+                if transition_key not in transitions_vues:
+                    cle = f"{classe_source},{symbole}"
+                    nouvelles_transitions[cle] = [classe_dest]
+                    transitions_vues.add(transition_key)
         
         return {
-            'alphabet': self.alphabet,
+            'alphabet': list(self.alphabet),
             'etats': nouveaux_etats,
             'etats_initiaux': nouveaux_etats_initiaux,
             'etats_finaux': nouveaux_etats_finaux,
@@ -202,28 +222,64 @@ class MinimisationAutomate:
         Minimise l'automate complet
         Retourne: (automate_minimise, informations_debug)
         """
-        # Étape 1: Supprimer les états inaccessibles
-        accessibles, inaccessibles = self.supprimer_etats_inaccessibles()
-        
-        # Étape 2: Construire la table de distinguabilité
-        table_distinguabilite = self.construire_table_distinguabilite()
-        
-        # Étape 3: Regrouper les états équivalents
-        classes_equivalence = self.regrouper_etats_equivalents(table_distinguabilite)
-        
-        # Étape 4: Construire l'automate minimisé
-        automate_minimise = self.construire_automate_minimise(classes_equivalence)
-        
-        # Informations pour le debug
-        info_debug = {
-            'etats_inaccessibles': list(inaccessibles),
-            'etats_accessibles': list(accessibles),
-            'classes_equivalence': {rep: membres for rep, membres in classes_equivalence.items()},
-            'nombre_etats_original': len(self.etats) + len(inaccessibles),
-            'nombre_etats_minimise': len(automate_minimise['etats'])
-        }
-        
-        return automate_minimise, info_debug
+        try:
+            # Sauvegarder l'état original
+            etats_originaux = len(self.etats)
+            
+            # Étape 1: Supprimer les états inaccessibles
+            accessibles, inaccessibles = self.supprimer_etats_inaccessibles()
+            
+            # Si pas d'états accessibles, retourner un automate vide
+            if not accessibles:
+                return {
+                    'alphabet': list(self.alphabet),
+                    'etats': [],
+                    'etats_initiaux': [],
+                    'etats_finaux': [],
+                    'transitions': {}
+                }, {
+                    'etats_inaccessibles': list(inaccessibles),
+                    'etats_accessibles': [],
+                    'classes_equivalence': {},
+                    'nombre_etats_original': etats_originaux,
+                    'nombre_etats_minimise': 0,
+                    'erreur': 'Aucun état accessible'
+                }
+            
+            # Étape 2: Construire la table de distinguabilité
+            table_distinguabilite = self.construire_table_distinguabilite()
+            
+            # Étape 3: Regrouper les états équivalents
+            classes_equivalence = self.regrouper_etats_equivalents(table_distinguabilite)
+            
+            # Étape 4: Construire l'automate minimisé
+            automate_minimise = self.construire_automate_minimise(classes_equivalence)
+            
+            # Informations pour le debug
+            info_debug = {
+                'etats_inaccessibles': list(inaccessibles),
+                'etats_accessibles': list(accessibles),
+                'classes_equivalence': {rep: membres for rep, membres in classes_equivalence.items()},
+                'nombre_etats_original': etats_originaux,
+                'nombre_etats_minimise': len(automate_minimise['etats']),
+                'table_distinguabilite': {f"{k[0]}-{k[1]}": v for k, v in table_distinguabilite.items()}
+            }
+            
+            return automate_minimise, info_debug
+            
+        except Exception as e:
+            # En cas d'erreur, retourner l'automate original avec info d'erreur
+            return {
+                'alphabet': list(self.alphabet),
+                'etats': list(self.etats),
+                'etats_initiaux': list(self.etats_initiaux),
+                'etats_finaux': list(self.etats_finaux),
+                'transitions': self.transitions
+            }, {
+                'erreur': f"Erreur durant la minimisation: {str(e)}",
+                'nombre_etats_original': len(self.etats),
+                'nombre_etats_minimise': len(self.etats)
+            }
 
 
 def minimiser_automate(automate):
@@ -236,8 +292,12 @@ def minimiser_automate(automate):
     Returns:
         tuple: (automate_minimise, informations_debug)
     """
-    minimiseur = MinimisationAutomate(automate)
-    return minimiseur.minimiser()
+    try:
+        minimiseur = MinimisationAutomate(automate)
+        return minimiseur.minimiser()
+    except Exception as e:
+        # Retourner l'automate original en cas d'erreur
+        return automate, {'erreur': f"Erreur lors de la minimisation: {str(e)}"}
 
 
 # Fonction de test
@@ -262,13 +322,34 @@ def test_minimisation():
         }
     }
     
-    automate_min, info = minimiser_automate(automate_test)
-    
     print("=== Test de minimisation ===")
-    print(f"États originaux: {automate_test['etats']}")
-    print(f"États minimisés: {automate_min['etats']}")
-    print(f"Classes d'équivalence: {info['classes_equivalence']}")
-    print(f"Réduction: {info['nombre_etats_original']} → {info['nombre_etats_minimise']} états")
+    print(f"Automate original:")
+    print(f"  États: {automate_test['etats']}")
+    print(f"  États initiaux: {automate_test['etats_initiaux']}")
+    print(f"  États finaux: {automate_test['etats_finaux']}")
+    print(f"  Transitions: {len(automate_test['transitions'])}")
+    
+    try:
+        automate_min, info = minimiser_automate(automate_test)
+        
+        print(f"\nAutomate minimisé:")
+        print(f"  États: {automate_min['etats']}")
+        print(f"  États initiaux: {automate_min['etats_initiaux']}")
+        print(f"  États finaux: {automate_min['etats_finaux']}")
+        print(f"  Transitions: {len(automate_min['transitions'])}")
+        
+        if 'classes_equivalence' in info:
+            print(f"\nClasses d'équivalence:")
+            for rep, membres in info['classes_equivalence'].items():
+                print(f"  {rep}: {membres}")
+        
+        print(f"\nRéduction: {info['nombre_etats_original']} → {info['nombre_etats_minimise']} états")
+        
+        if 'erreur' in info:
+            print(f"Erreur: {info['erreur']}")
+            
+    except Exception as e:
+        print(f"Erreur durant le test: {e}")
 
 
 if __name__ == "__main__":

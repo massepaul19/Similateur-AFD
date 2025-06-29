@@ -7,7 +7,7 @@ from app.models.automate import db
 def create_app(config_name='development'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:codingfirst@localhost/automates_db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:massepaul17@localhost/automates_db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)

@@ -1591,3 +1591,975 @@ function exportMinimizedAutomaton() {
     
     showMessage('✅ Automate exporté avec succès', 'success');
 }
+
+
+// ============================================================================
+// FONCTIONS AMÉLIORÉES POUR LA CONSTRUCTION DE GLUSHKOV
+// À remplacer dans votre script.js existant
+// ============================================================================
+
+// Fonction principale améliorée pour construire l'automate de Glushkov
+function constructGlushkov() {
+    const regexInput = document.getElementById('regexInput').value.trim();
+    if (!regexInput) {
+        showMessage('⚠️ Veuillez entrer une expression régulière.', 'warning');
+        return;
+    }
+    
+    try {
+        console.log(`Début construction Glushkov pour: "${regexInput}"`);
+        
+        // Réinitialiser l'état précédent
+        resetGlushkovState();
+        
+        // Construire l'automate de Glushkov
+        const automaton = buildGlushkovAutomaton(regexInput);
+        
+        if (!automaton || !automaton.etats || automaton.etats.length === 0) {
+            throw new Error("Automate généré invalide");
+        }
+        
+        // Mettre à jour l'automate courant
+        currentAutomaton = automaton;
+        originalAutomaton = JSON.parse(JSON.stringify(automaton));
+        isAutomatonSaved = true;
+        
+        console.log('Automate Glushkov construit:', automaton);
+        
+        // Forcer la mise à jour du canvas actif
+        updateActiveCanvas('glushkov');
+        
+        // Attendre un court délai pour s'assurer que le canvas est prêt
+        setTimeout(() => {
+            drawCurrentAutomaton();
+            
+            // Afficher des informations sur la construction
+            displayGlushkovInfo(regexInput, automaton);
+        }, 100);
+        
+        showMessage('✅ Automate de Glushkov construit avec succès', 'success');
+        
+    } catch (error) {
+        console.error('Erreur construction Glushkov:', error);
+        showMessage(`❌ Erreur lors de la construction : ${error.message}`, 'error');
+        resetGlushkovState();
+    }
+}
+
+// Fonction pour afficher les informations sur l'automate construit
+function displayGlushkovInfo(regex, automaton) {
+    const infoDiv = document.getElementById('glushkovInfo');
+    if (infoDiv) {
+        infoDiv.style.display = 'block';
+        infoDiv.innerHTML = `
+            <div class="glushkov-info-content">
+                <h4>📊 Informations sur l'automate de Glushkov</h4>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <strong>Expression régulière :</strong> ${regex}
+                    </div>
+                    <div class="info-item">
+                        <strong>Alphabet :</strong> {${automaton.alphabet.join(', ')}}
+                    </div>
+                    <div class="info-item">
+                        <strong>Nombre d'états :</strong> ${automaton.etats.length}
+                    </div>
+                    <div class="info-item">
+                        <strong>États initiaux :</strong> {${automaton.etats_initiaux.map(s => `q${s}`).join(', ')}}
+                    </div>
+                    <div class="info-item">
+                        <strong>États finaux :</strong> {${automaton.etats_finaux.map(s => `q${s}`).join(', ')}}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Fonction principale améliorée de construction
+function buildGlushkovAutomaton(regex) {
+    console.log(`Construction automate pour: ${regex}`);
+    
+    // Nettoyer et valider l'expression régulière
+    const cleanRegex = regex.trim();
+    if (!cleanRegex) {
+        throw new Error("Expression régulière vide");
+    }
+    
+    // Extraire l'alphabet de l'expression
+    const alphabet = extractAlphabet(cleanRegex);
+    
+    if (alphabet.length === 0) {
+        throw new Error("Aucun caractère valide trouvé dans l'expression régulière");
+    }
+    
+    console.log(`Alphabet extrait: [${alphabet.join(', ')}]`);
+    
+    // Analyser et construire selon le type d'expression
+    let automaton;
+    
+    try {
+        if (isSimpleCharacter(cleanRegex)) {
+            // Caractère simple (ex: "a")
+            automaton = buildSimpleCharAutomaton(cleanRegex, alphabet);
+        } else if (isKleeneExpression(cleanRegex)) {
+            // Expression avec étoile de Kleene (ex: "a*", "(ab)*")
+            automaton = buildKleeneAutomaton(cleanRegex, alphabet);
+        } else if (isPlusExpression(cleanRegex)) {
+            // Expression avec plus (ex: "a+")
+            automaton = buildPlusAutomaton(cleanRegex, alphabet);
+        } else if (isUnionExpression(cleanRegex)) {
+            // Expression avec union (ex: "a|b")
+            automaton = buildUnionAutomaton(cleanRegex, alphabet);
+        } else if (isConcatenationExpression(cleanRegex)) {
+            // Expression de concaténation (ex: "abc", "ab*c")
+            automaton = buildConcatenationAutomaton(cleanRegex, alphabet);
+        } else {
+            // Par défaut, traiter comme séquentielle
+            automaton = buildSequentialAutomaton(cleanRegex, alphabet);
+        }
+        
+        // Valider l'automate construit
+        validateAutomaton(automaton);
+        
+        console.log('Automate construit avec succès:', automaton);
+        return automaton;
+        
+    } catch (error) {
+        console.error('Erreur lors de la construction:', error);
+        throw new Error(`Impossible de construire l'automate: ${error.message}`);
+    }
+}
+
+// Fonctions de détection du type d'expression
+function isSimpleCharacter(regex) {
+    return /^[a-zA-Z]$/.test(regex);
+}
+
+function isKleeneExpression(regex) {
+    return /\*/.test(regex);
+}
+
+function isPlusExpression(regex) {
+    return /\+/.test(regex) && !/\*/.test(regex);
+}
+
+function isUnionExpression(regex) {
+    return /\|/.test(regex);
+}
+
+function isConcatenationExpression(regex) {
+    return /^[a-zA-Z\(\)\*\+]{2,}$/.test(regex) && !/\|/.test(regex);
+}
+
+// Construction pour caractère simple
+function buildSimpleCharAutomaton(regex, alphabet) {
+    const char = regex.toLowerCase();
+    
+    return {
+        alphabet: alphabet,
+        etats: [0, 1],
+        etats_initiaux: [0],
+        etats_finaux: [1],
+        transitions: {
+            0: { [char]: [1] },
+            1: {}
+        }
+    };
+}
+
+// Construction améliorée pour expression séquentielle
+function buildSequentialAutomaton(regex, alphabet) {
+    const chars = regex.match(/[a-zA-Z]/g) || [];
+    
+    if (chars.length === 0) {
+        throw new Error("Aucun caractère trouvé dans l'expression séquentielle");
+    }
+    
+    const states = [];
+    const transitions = {};
+    
+    // Créer les états (0 à n)
+    for (let i = 0; i <= chars.length; i++) {
+        states.push(i);
+        transitions[i] = {};
+    }
+    
+    // Créer les transitions séquentielles
+    for (let i = 0; i < chars.length; i++) {
+        const char = chars[i].toLowerCase();
+        transitions[i][char] = [i + 1];
+    }
+    
+    return {
+        alphabet: alphabet,
+        etats: states,
+        etats_initiaux: [0],
+        etats_finaux: [chars.length],
+        transitions: transitions
+    };
+}
+
+// Construction améliorée pour étoile de Kleene
+function buildKleeneAutomaton(regex, alphabet) {
+    // Extraire le contenu avant l'étoile
+    const basePattern = regex.replace(/\*+/g, '');
+    
+    if (!basePattern) {
+        throw new Error("Pattern vide pour l'étoile de Kleene");
+    }
+    
+    if (basePattern.length === 1) {
+        // Cas simple: a*
+        const char = basePattern.toLowerCase();
+        return {
+            alphabet: alphabet,
+            etats: [0, 1],
+            etats_initiaux: [0],
+            etats_finaux: [0, 1], // État initial accepte ε
+            transitions: {
+                0: { [char]: [1] },
+                1: { [char]: [1] } // Boucle sur l'état 1
+            }
+        };
+    } else {
+        // Cas complexe: (abc)*
+        const chars = basePattern.match(/[a-zA-Z]/g) || [];
+        const numStates = chars.length + 1;
+        const states = Array.from({length: numStates}, (_, i) => i);
+        const transitions = {};
+        
+        // Initialiser transitions
+        states.forEach(state => {
+            transitions[state] = {};
+        });
+        
+        // Créer la séquence principale
+        for (let i = 0; i < chars.length; i++) {
+            const char = chars[i].toLowerCase();
+            transitions[i][char] = [i + 1];
+        }
+        
+        // Boucle de retour du dernier état vers le premier
+        if (chars.length > 0) {
+            const lastChar = chars[chars.length - 1].toLowerCase();
+            if (!transitions[chars.length - 1][lastChar]) {
+                transitions[chars.length - 1][lastChar] = [];
+            }
+            // Le dernier caractère peut revenir au début
+            const lastStateTransitions = transitions[chars.length - 1][lastChar];
+            if (!lastStateTransitions.includes(0)) {
+                lastStateTransitions.push(0);
+            }
+        }
+        
+        return {
+            alphabet: alphabet,
+            etats: states,
+            etats_initiaux: [0],
+            etats_finaux: [0, chars.length], // État initial et final acceptent
+            transitions: transitions
+        };
+    }
+}
+
+// Construction améliorée pour plus
+function buildPlusAutomaton(regex, alphabet) {
+    const basePattern = regex.replace(/\++/g, '');
+    
+    if (!basePattern) {
+        throw new Error("Pattern vide pour l'opérateur plus");
+    }
+    
+    if (basePattern.length === 1) {
+        // Cas simple: a+
+        const char = basePattern.toLowerCase();
+        return {
+            alphabet: alphabet,
+            etats: [0, 1],
+            etats_initiaux: [0],
+            etats_finaux: [1], // Seul l'état 1 est final
+            transitions: {
+                0: { [char]: [1] },
+                1: { [char]: [1] } // Boucle sur l'état 1
+            }
+        };
+    } else {
+        // Cas complexe: (abc)+
+        const chars = basePattern.match(/[a-zA-Z]/g) || [];
+        const numStates = chars.length + 1;
+        const states = Array.from({length: numStates}, (_, i) => i);
+        const transitions = {};
+        
+        // Initialiser transitions
+        states.forEach(state => {
+            transitions[state] = {};
+        });
+        
+        // Créer la séquence principale
+        for (let i = 0; i < chars.length; i++) {
+            const char = chars[i].toLowerCase();
+            transitions[i][char] = [i + 1];
+        }
+        
+        // Boucle de retour du dernier état vers le premier
+        if (chars.length > 0) {
+            const lastChar = chars[chars.length - 1].toLowerCase();
+            if (!transitions[chars.length - 1][lastChar]) {
+                transitions[chars.length - 1][lastChar] = [];
+            }
+            transitions[chars.length - 1][lastChar].push(0);
+        }
+        
+        return {
+            alphabet: alphabet,
+            etats: states,
+            etats_initiaux: [0],
+            etats_finaux: [chars.length], // Seul l'état final
+            transitions: transitions
+        };
+    }
+}
+
+// Construction améliorée pour union
+function buildUnionAutomaton(regex, alphabet) {
+    const parts = regex.split('|').map(part => part.trim()).filter(part => part.length > 0);
+    
+    if (parts.length < 2) {
+        throw new Error("Expression d'union invalide");
+    }
+    
+    const states = [0]; // État initial commun
+    const transitions = { 0: {} };
+    let nextStateId = 1;
+    
+    // Pour chaque partie de l'union
+    parts.forEach((part, index) => {
+        if (part.length === 1) {
+            // Caractère simple
+            const char = part.toLowerCase();
+            const finalState = nextStateId++;
+            states.push(finalState);
+            transitions[finalState] = {};
+            
+            if (!transitions[0][char]) {
+                transitions[0][char] = [];
+            }
+            transitions[0][char].push(finalState);
+        } else {
+            // Séquence plus complexe
+            const chars = part.match(/[a-zA-Z]/g) || [];
+            if (chars.length > 0) {
+                let currentState = 0;
+                
+                for (let i = 0; i < chars.length; i++) {
+                    const char = chars[i].toLowerCase();
+                    let nextState;
+                    
+                    if (i === chars.length - 1) {
+                        // Dernier caractère, créer état final
+                        nextState = nextStateId++;
+                        states.push(nextState);
+                        transitions[nextState] = {};
+                    } else {
+                        // État intermédiaire
+                        nextState = nextStateId++;
+                        states.push(nextState);
+                        transitions[nextState] = {};
+                    }
+                    
+                    if (!transitions[currentState][char]) {
+                        transitions[currentState][char] = [];
+                    }
+                    transitions[currentState][char].push(nextState);
+                    currentState = nextState;
+                }
+            }
+        }
+    });
+    
+    // Tous les états créés (sauf l'initial) sont des états finaux
+    const finalStates = states.slice(1);
+    
+    return {
+        alphabet: alphabet,
+        etats: states,
+        etats_initiaux: [0],
+        etats_finaux: finalStates,
+        transitions: transitions
+    };
+}
+
+// Construction pour concaténation complexe
+function buildConcatenationAutomaton(regex, alphabet) {
+    // Pour l'instant, traiter comme séquentiel simple
+    // Cette fonction peut être étendue pour gérer des cas plus complexes
+    return buildSequentialAutomaton(regex, alphabet);
+}
+
+// Fonction de validation d'automate
+function validateAutomaton(automaton) {
+    if (!automaton) {
+        throw new Error("Automate null");
+    }
+    
+    if (!automaton.alphabet || !Array.isArray(automaton.alphabet) || automaton.alphabet.length === 0) {
+        throw new Error("Alphabet invalide");
+    }
+    
+    if (!automaton.etats || !Array.isArray(automaton.etats) || automaton.etats.length === 0) {
+        throw new Error("États invalides");
+    }
+    
+    if (!automaton.etats_initiaux || !Array.isArray(automaton.etats_initiaux) || automaton.etats_initiaux.length === 0) {
+        throw new Error("États initiaux invalides");
+    }
+    
+    if (!automaton.etats_finaux || !Array.isArray(automaton.etats_finaux)) {
+        throw new Error("États finaux invalides");
+    }
+    
+    if (!automaton.transitions || typeof automaton.transitions !== 'object') {
+        throw new Error("Transitions invalides");
+    }
+    
+    // Vérifier que tous les états référencés existent
+    const allStates = new Set(automaton.etats);
+    
+    automaton.etats_initiaux.forEach(state => {
+        if (!allStates.has(state)) {
+            throw new Error(`État initial ${state} n'existe pas`);
+        }
+    });
+    
+    automaton.etats_finaux.forEach(state => {
+        if (!allStates.has(state)) {
+            throw new Error(`État final ${state} n'existe pas`);
+        }
+    });
+    
+    console.log("Automate validé avec succès");
+}
+
+// Fonction améliorée d'extraction d'alphabet
+function extractAlphabet(regex) {
+    // Supprimer les opérateurs et caractères spéciaux pour extraire les lettres
+    const letters = regex.match(/[a-zA-Z]/g) || [];
+    const uniqueLetters = Array.from(new Set(letters.map(l => l.toLowerCase()))).sort();
+    
+    if (uniqueLetters.length === 0) {
+        throw new Error("Aucune lettre trouvée dans l'expression régulière");
+    }
+    
+    return uniqueLetters;
+}
+
+// Fonction de reset améliorée
+function resetGlushkovState() {
+    console.log("Reset de l'état Glushkov...");
+    
+    // Réinitialiser les variables globales
+    currentAutomaton = null;
+    originalAutomaton = null;
+    isAutomatonSaved = false;
+    
+    // Nettoyer tous les canvas
+    document.querySelectorAll('canvas').forEach(canvas => {
+        const context = canvas.getContext('2d');
+        if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    });
+    
+    // Masquer les informations Glushkov
+    const glushkovInfo = document.getElementById('glushkovInfo');
+    if (glushkovInfo) {
+        glushkovInfo.style.display = 'none';
+        glushkovInfo.innerHTML = '';
+    }
+    
+    // Réinitialiser les variables de zoom et pan
+    scale = 1;
+    offsetX = 0;
+    offsetY = 0;
+    
+    console.log("État Glushkov réinitialisé");
+}
+
+// Fonction de test pour exemples prédéfinis
+function setRegexExample(example) {
+    document.getElementById('regexInput').value = example;
+    console.log(`Exemple sélectionné: ${example}`);
+}
+
+// Fonction pour tester l'automate construit
+function testGlushkovAutomaton() {
+    if (!currentAutomaton || !isAutomatonSaved) {
+        showMessage('⚠️ Veuillez d\'abord construire un automate de Glushkov', 'warning');
+        return;
+    }
+    
+    // Basculer vers l'onglet reconnaissance
+    showTab('recognition');
+    showMessage('💡 Vous pouvez maintenant tester des mots avec l\'automate construit', 'info');
+}
+
+// ============================================================================
+// DIAGNOSTIC ET CORRECTIONS POUR L'AUTOMATE DE THOMPSON
+// ============================================================================
+
+// 1. PROBLÈME : Gestion des canvas et fonctions de dessin manquantes
+// SOLUTION : Vérifier la présence des fonctions de rendu
+
+function checkThompsonDependencies() {
+    const missingFunctions = [];
+    
+    // Vérifier les fonctions de dessin essentielles
+    if (typeof drawCurrentAutomaton !== 'function') {
+        missingFunctions.push('drawCurrentAutomaton');
+    }
+    if (typeof updateActiveCanvas !== 'function') {
+        missingFunctions.push('updateActiveCanvas');
+    }
+    if (typeof showMessage !== 'function') {
+        missingFunctions.push('showMessage');
+    }
+    
+    // Vérifier les éléments DOM essentiels
+    const regexInput = document.getElementById('regexInput');
+    if (!regexInput) {
+        missingFunctions.push('regexInput element');
+    }
+    
+    const canvas = document.querySelector('canvas');
+    if (!canvas) {
+        missingFunctions.push('canvas element');
+    }
+    
+    if (missingFunctions.length > 0) {
+        console.error('❌ Dépendances manquantes pour Thompson:', missingFunctions);
+        return false;
+    }
+    
+    console.log('✅ Toutes les dépendances Thompson sont présentes');
+    return true;
+}
+
+// 2. PROBLÈME : Variables globales non initialisées
+// SOLUTION : Initialisation sécurisée des variables
+
+function initializeThompsonGlobals() {
+    // S'assurer que les variables globales existent
+    if (typeof window.currentAutomaton === 'undefined') {
+        window.currentAutomaton = null;
+    }
+    if (typeof window.originalAutomaton === 'undefined') {
+        window.originalAutomaton = null;
+    }
+    if (typeof window.isAutomatonSaved === 'undefined') {
+        window.isAutomatonSaved = false;
+    }
+    if (typeof window.scale === 'undefined') {
+        window.scale = 1;
+    }
+    if (typeof window.offsetX === 'undefined') {
+        window.offsetX = 0;
+    }
+    if (typeof window.offsetY === 'undefined') {
+        window.offsetY = 0;
+    }
+    
+    console.log('✅ Variables globales Thompson initialisées');
+}
+
+// 3. PROBLÈME : Fonction constructThompson corrigée avec meilleur debug
+function constructThompsonDebug() {
+    console.log('🔍 Début construction Thompson avec debug...');
+    
+    // Vérifier les dépendances
+    if (!checkThompsonDependencies()) {
+        alert('❌ Erreur: Fonctions de rendu manquantes. Vérifiez que le module de dessin est chargé.');
+        return;
+    }
+    
+    // Initialiser les variables globales
+    initializeThompsonGlobals();
+    
+    const regexInput = document.getElementById('regexInput');
+    const regex = regexInput.value.trim();
+    
+    if (!regex) {
+        console.warn('⚠️ Expression régulière vide');
+        if (typeof showMessage === 'function') {
+            showMessage('⚠️ Veuillez entrer une expression régulière.', 'warning');
+        } else {
+            alert('⚠️ Veuillez entrer une expression régulière.');
+        }
+        return;
+    }
+    
+    try {
+        console.log(`🏗️ Construction Thompson pour: "${regex}"`);
+        
+        // Réinitialiser l'état
+        resetThompsonStateDebug();
+        
+        // Construire l'automate
+        const automaton = buildThompsonAutomatonDebug(regex);
+        console.log('📊 Automate construit:', automaton);
+        
+        if (!automaton || !automaton.etats || automaton.etats.length === 0) {
+            throw new Error("Automate Thompson généré invalide");
+        }
+        
+        // Mettre à jour les variables globales
+        window.currentAutomaton = automaton;
+        window.originalAutomaton = JSON.parse(JSON.stringify(automaton));
+        window.isAutomatonSaved = true;
+        
+        // Vérifier la présence du canvas
+        const canvas = document.querySelector('canvas');
+        if (!canvas) {
+            throw new Error("Aucun canvas trouvé pour dessiner l'automate");
+        }
+        
+        console.log('🎨 Canvas trouvé, dimensions:', canvas.width, 'x', canvas.height);
+        
+        // Forcer la mise à jour du canvas actif
+        if (typeof updateActiveCanvas === 'function') {
+            updateActiveCanvas('thompson');
+            console.log('✅ Canvas actif mis à jour');
+        }
+        
+        // Dessiner avec délai pour s'assurer que tout est prêt
+        setTimeout(() => {
+            console.log('🖌️ Tentative de dessin...');
+            if (typeof drawCurrentAutomaton === 'function') {
+                drawCurrentAutomaton();
+                console.log('✅ Automate dessiné');
+            } else {
+                console.error('❌ Fonction drawCurrentAutomaton non disponible');
+                // Fallback: dessiner directement
+                drawThompsonFallback(automaton, canvas);
+            }
+            
+            // Afficher les informations
+            displayThompsonInfoDebug(regex, automaton);
+        }, 100);
+        
+        const message = '✅ Automate de Thompson construit avec succès';
+        console.log(message);
+        if (typeof showMessage === 'function') {
+            showMessage(message, 'success');
+        } else {
+            alert(message);
+        }
+        
+    } catch (error) {
+        console.error('❌ Erreur construction Thompson:', error);
+        const errorMessage = `❌ Erreur: ${error.message}`;
+        if (typeof showMessage === 'function') {
+            showMessage(errorMessage, 'error');
+        } else {
+            alert(errorMessage);
+        }
+        resetThompsonStateDebug();
+    }
+}
+
+// 4. FONCTION DE DESSIN FALLBACK si drawCurrentAutomaton n'existe pas
+function drawThompsonFallback(automaton, canvas) {
+    console.log('🎨 Utilisation du dessin fallback Thompson');
+    
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Configuration de base
+    const stateRadius = 25;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const spacing = 100;
+    
+    // Positions des états (disposition horizontale simple)
+    const statePositions = {};
+    automaton.etats.forEach((state, index) => {
+        statePositions[state] = {
+            x: centerX + (index - automaton.etats.length / 2) * spacing,
+            y: centerY
+        };
+    });
+    
+    // Dessiner les états
+    automaton.etats.forEach(state => {
+        const pos = statePositions[state];
+        const isInitial = automaton.etats_initiaux.includes(state);
+        const isFinal = automaton.etats_finaux.includes(state);
+        
+        // Cercle principal
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, stateRadius, 0, 2 * Math.PI);
+        ctx.strokeStyle = isInitial ? '#0066cc' : '#333';
+        ctx.lineWidth = isInitial ? 3 : 2;
+        ctx.stroke();
+        
+        // Cercle double pour états finaux
+        if (isFinal) {
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, stateRadius - 5, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+        
+        // Étiquette de l'état
+        ctx.fillStyle = '#333';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`q${state}`, pos.x, pos.y);
+        
+        // Flèche d'entrée pour état initial
+        if (isInitial) {
+            ctx.beginPath();
+            ctx.moveTo(pos.x - stateRadius - 30, pos.y);
+            ctx.lineTo(pos.x - stateRadius - 5, pos.y);
+            ctx.strokeStyle = '#0066cc';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Pointe de flèche
+            ctx.beginPath();
+            ctx.moveTo(pos.x - stateRadius - 5, pos.y);
+            ctx.lineTo(pos.x - stateRadius - 10, pos.y - 5);
+            ctx.moveTo(pos.x - stateRadius - 5, pos.y);
+            ctx.lineTo(pos.x - stateRadius - 10, pos.y + 5);
+            ctx.stroke();
+        }
+    });
+    
+    // Dessiner les transitions
+    Object.entries(automaton.transitions).forEach(([fromState, transitions]) => {
+        Object.entries(transitions).forEach(([symbol, toStates]) => {
+            toStates.forEach(toState => {
+                const fromPos = statePositions[parseInt(fromState)];
+                const toPos = statePositions[toState];
+                
+                if (fromPos && toPos) {
+                    // Ligne de transition
+                    ctx.beginPath();
+                    ctx.moveTo(fromPos.x + stateRadius, fromPos.y);
+                    ctx.lineTo(toPos.x - stateRadius, toPos.y);
+                    ctx.strokeStyle = symbol === 'ε' ? '#ff6600' : '#333';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    
+                    // Étiquette de transition
+                    const midX = (fromPos.x + toPos.x) / 2;
+                    const midY = (fromPos.y + toPos.y) / 2 - 10;
+                    ctx.fillStyle = symbol === 'ε' ? '#ff6600' : '#333';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(symbol, midX, midY);
+                    
+                    // Pointe de flèche
+                    const angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x);
+                    const arrowX = toPos.x - stateRadius;
+                    const arrowY = toPos.y;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(arrowX, arrowY);
+                    ctx.lineTo(arrowX - 10 * Math.cos(angle - 0.5), arrowY - 10 * Math.sin(angle - 0.5));
+                    ctx.moveTo(arrowX, arrowY);
+                    ctx.lineTo(arrowX - 10 * Math.cos(angle + 0.5), arrowY - 10 * Math.sin(angle + 0.5));
+                    ctx.stroke();
+                }
+            });
+        });
+    });
+    
+    console.log('✅ Dessin fallback Thompson terminé');
+}
+
+// 5. FONCTION DE BUILD AVEC DEBUG AMÉLIORÉ
+function buildThompsonAutomatonDebug(regex) {
+    console.log(`🔧 Construction détaillée pour: "${regex}"`);
+    
+    // Validation d'entrée
+    if (!regex || regex.trim() === '') {
+        throw new Error("Expression régulière vide");
+    }
+    
+    const cleanRegex = regex.trim();
+    console.log(`📝 Expression nettoyée: "${cleanRegex}"`);
+    
+    // Réinitialiser le compteur d'états
+    ThompsonStateID.reset();
+    console.log('🔄 Compteur d\'états réinitialisé');
+    
+    // Extraire l'alphabet
+    const alphabet = extractAlphabetDebug(cleanRegex);
+    console.log(`🔤 Alphabet extrait: [${alphabet.join(', ')}]`);
+    
+    let automaton;
+    
+    try {
+        // Détection du type d'expression avec logs
+        if (isSimpleCharacter(cleanRegex)) {
+            console.log('🎯 Type détecté: Caractère simple');
+            automaton = buildThompsonSimpleChar(cleanRegex, alphabet);
+        } else if (isKleeneExpression(cleanRegex)) {
+            console.log('🎯 Type détecté: Expression Kleene (*)');
+            automaton = buildThompsonKleene(cleanRegex, alphabet);
+        } else if (isPlusExpression(cleanRegex)) {
+            console.log('🎯 Type détecté: Expression Plus (+)');
+            automaton = buildThompsonPlus(cleanRegex, alphabet);
+        } else if (isUnionExpression(cleanRegex)) {
+            console.log('🎯 Type détecté: Expression Union (|)');
+            automaton = buildThompsonUnion(cleanRegex, alphabet);
+        } else if (isConcatenationExpression(cleanRegex)) {
+            console.log('🎯 Type détecté: Expression Concaténation');
+            automaton = buildThompsonConcatenation(cleanRegex, alphabet);
+        } else {
+            console.log('🎯 Type détecté: Séquentiel (par défaut)');
+            automaton = buildThompsonSequential(cleanRegex, alphabet);
+        }
+        
+        console.log('🏗️ Automate construit:', automaton);
+        
+        // Validation
+        validateThompsonAutomatonDebug(automaton);
+        
+        return automaton;
+        
+    } catch (error) {
+        console.error('💥 Erreur lors de la construction:', error);
+        throw error;
+    }
+}
+
+// 6. FONCTION D'EXTRACTION D'ALPHABET AVEC DEBUG
+function extractAlphabetDebug(regex) {
+    console.log(`🔍 Extraction alphabet de: "${regex}"`);
+    
+    const letters = regex.match(/[a-zA-Z]/g) || [];
+    console.log(`📝 Lettres trouvées: [${letters.join(', ')}]`);
+    
+    const uniqueLetters = Array.from(new Set(letters.map(l => l.toLowerCase()))).sort();
+    console.log(`✨ Lettres uniques: [${uniqueLetters.join(', ')}]`);
+    
+    if (uniqueLetters.length === 0) {
+        throw new Error("Aucune lettre trouvée dans l'expression régulière");
+    }
+    
+    return uniqueLetters;
+}
+
+// 7. VALIDATION AVEC DEBUG AMÉLIORÉ
+function validateThompsonAutomatonDebug(automaton) {
+    console.log('🔍 Validation de l\'automate Thompson...');
+    
+    const checks = [
+        { name: 'Automate non-null', test: () => automaton !== null && automaton !== undefined },
+        { name: 'Alphabet valide', test: () => automaton.alphabet && Array.isArray(automaton.alphabet) },
+        { name: 'États valides', test: () => automaton.etats && Array.isArray(automaton.etats) && automaton.etats.length > 0 },
+        { name: 'États initiaux valides', test: () => automaton.etats_initiaux && Array.isArray(automaton.etats_initiaux) && automaton.etats_initiaux.length > 0 },
+        { name: 'États finaux valides', test: () => automaton.etats_finaux && Array.isArray(automaton.etats_finaux) },
+        { name: 'Transitions valides', test: () => automaton.transitions && typeof automaton.transitions === 'object' }
+    ];
+    
+    checks.forEach(check => {
+        if (check.test()) {
+            console.log(`✅ ${check.name}`);
+        } else {
+            console.error(`❌ ${check.name}`);
+            throw new Error(`Validation échouée: ${check.name}`);
+        }
+    });
+    
+    console.log('✅ Automate Thompson validé avec succès');
+}
+
+// 8. RESET AVEC DEBUG
+function resetThompsonStateDebug() {
+    console.log('🔄 Reset de l\'état Thompson avec debug...');
+    
+    // Nettoyer les variables globales
+    window.currentAutomaton = null;
+    window.originalAutomaton = null;
+    window.isAutomatonSaved = false;
+    
+    // Nettoyer les canvas
+    document.querySelectorAll('canvas').forEach((canvas, index) => {
+        const context = canvas.getContext('2d');
+        if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            console.log(`🧹 Canvas ${index} nettoyé`);
+        }
+    });
+    
+    // Réinitialiser les variables de zoom
+    window.scale = 1;
+    window.offsetX = 0;
+    window.offsetY = 0;
+    
+    // Réinitialiser le compteur
+    ThompsonStateID.reset();
+    
+    console.log('✅ État Thompson réinitialisé');
+}
+
+// 9. AFFICHAGE D'INFORMATIONS AVEC DEBUG
+function displayThompsonInfoDebug(regex, automaton) {
+    console.log('📊 Affichage des informations Thompson...');
+    
+    const infoDiv = document.getElementById('thompsonInfo') || 
+                   document.getElementById('glushkovInfo') || 
+                   document.getElementById('automaton-info');
+    
+    if (infoDiv) {
+        infoDiv.style.display = 'block';
+        infoDiv.innerHTML = `
+            <div class="thompson-info-content">
+                <h4>📊 Automate de Thompson - Informations</h4>
+                <div class="info-grid">
+                    <div><strong>Expression :</strong> ${regex}</div>
+                    <div><strong>Alphabet :</strong> {${automaton.alphabet.join(', ')}}</div>
+                    <div><strong>États :</strong> ${automaton.etats.length} (${automaton.etats.map(s => `q${s}`).join(', ')})</div>
+                    <div><strong>État initial :</strong> q${automaton.etats_initiaux[0]}</div>
+                    <div><strong>États finaux :</strong> {${automaton.etats_finaux.map(s => `q${s}`).join(', ')}}</div>
+                    <div><strong>Transitions ε :</strong> ${countEpsilonTransitions(automaton.transitions)}</div>
+                </div>
+            </div>
+        `;
+        console.log('✅ Informations affichées');
+    } else {
+        console.warn('⚠️ Aucun élément trouvé pour afficher les informations');
+    }
+}
+
+// 10. FONCTION DE TEST RAPIDE
+function testThompsonConstruction() {
+    console.log('🧪 Test rapide de construction Thompson...');
+    
+    const testCases = ['a', 'ab', 'a*', 'a|b', '(ab)*'];
+    
+    testCases.forEach(regex => {
+        try {
+            console.log(`\n🔬 Test de: "${regex}"`);
+            const automaton = buildThompsonAutomatonDebug(regex);
+            console.log(`✅ "${regex}" -> ${automaton.etats.length} états`);
+        } catch (error) {
+            console.error(`❌ "${regex}" -> Erreur: ${error.message}`);
+        }
+    });
+    
+    console.log('\n🏁 Tests terminés');
+}
+
+// Export des fonctions de debug
+window.constructThompsonDebug = constructThompsonDebug;
+window.testThompsonConstruction = testThompsonConstruction;
+window.checkThompsonDependencies = checkThompsonDependencies;
+
+console.log('🔧 Module de debug Thompson chargé');
+console.log('💡 Utilisez constructThompsonDebug() à la place de constructThompson()');
+console.log('💡 Utilisez testThompsonConstruction() pour tester rapidement');
+console.log('💡 Utilisez checkThompsonDependencies() pour vérifier les dépendances');

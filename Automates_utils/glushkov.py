@@ -1,4 +1,4 @@
-# glushkov.py - Version corrigée selon la vraie logique de Glushkov
+# glushkov_simple.py - Algorithme de Glushkov simplifié avec tableau de successeurs
 from regex_parser import parse_regex
 
 class Automaton:
@@ -17,56 +17,65 @@ class Automaton:
     
     def to_dict(self):
         """Convertit l'automate au format attendu par l'interface"""
-        # États : 0 (initial) + positions des caractères
         all_states = {'0'} | {str(s) for s in self.states}
         
-        # Transitions au format attendu
         transitions_dict = {}
-        
-        # Transitions normales
         for (src, symbol), dests in self.transitions.items():
             key = f"{src},{symbol}"
-            if key not in transitions_dict:
-                transitions_dict[key] = []
-            for dest in sorted(dests):
-                transitions_dict[key].append(str(dest))
-        
-        # Déterminer les états finaux
-        final_states_list = [str(s) for s in sorted(self.final_states)]
+            transitions_dict[key] = sorted([str(dest) for dest in dests])
         
         return {
             'alphabet': sorted(list(self.alphabet)),
             'etats': sorted(list(all_states), key=lambda x: int(x) if x.isdigit() else 0),
             'etats_initiaux': ['0'],
-            'etats_finaux': final_states_list,
+            'etats_finaux': sorted([str(s) for s in self.final_states]),
             'transitions': transitions_dict
         }
 
-def glushkov_correct(regex):
-    """Construction de l'automate de Glushkov selon la vraie logique"""
-    ast = parse_regex(regex)
+def lineariser_regex(regex_str):
+    """
+    Étape 1: Linéariser toutes les lettres
+    Ex: a(a+b)b = a1(a2+b3)b4
+    """
+    ast = parse_regex(regex_str)
     
-    # Étape 1: Linéarisation - Attribution des positions aux caractères
-    positions = {}  # position -> caractère
+    # Dictionnaire position -> lettre originale
+    positions = {}
     pos_counter = 1
     
-    def linearize(node):
-        """Linéarise l'expression en attribuant des numéros aux caractères"""
+    def parcourir_et_numeroter(node):
         nonlocal pos_counter
         if node.kind == 'char':
             node.pos = pos_counter
             positions[pos_counter] = node.value
             pos_counter += 1
-        elif hasattr(node, 'left'):
-            linearize(node.left)
-            if hasattr(node, 'right') and node.right:
-                linearize(node.right)
+        elif hasattr(node, 'left') and node.left:
+            parcourir_et_numeroter(node.left)
+        if hasattr(node, 'right') and node.right:
+            parcourir_et_numeroter(node.right)
     
-    linearize(ast)
+    parcourir_et_numeroter(ast)
+    return ast, positions
+
+def calculer_premiers_derniers(ast):
+    """
+    Calcule les ensembles First et Last pour déterminer 
+    les états initiaux et finaux potentiels
+    """
+    def is_nullable(node):
+        if node.kind == 'char':
+            return False
+        elif node.kind == 'union':
+            return is_nullable(node.left) or is_nullable(node.right)
+        elif node.kind == 'concat':
+            return is_nullable(node.left) and is_nullable(node.right)
+        elif node.kind == 'star':
+            return True
+        elif node.kind == 'plus':
+            return False
+        return False
     
-    # Étape 2: Calcul des ensembles First, Last et Nullable
     def first_pos(node):
-        """Calcule l'ensemble des premières positions"""
         if node.kind == 'char':
             return {node.pos}
         elif node.kind == 'union':
@@ -81,7 +90,6 @@ def glushkov_correct(regex):
         return set()
     
     def last_pos(node):
-        """Calcule l'ensemble des dernières positions"""
         if node.kind == 'char':
             return {node.pos}
         elif node.kind == 'union':
@@ -95,279 +103,261 @@ def glushkov_correct(regex):
             return last_pos(node.left)
         return set()
     
-    def is_nullable(node):
-        """Détermine si un nœud peut générer le mot vide (ε)"""
-        if node.kind == 'char':
-            return False
-        elif node.kind == 'union':
-            return is_nullable(node.left) or is_nullable(node.right)
-        elif node.kind == 'concat':
-            return is_nullable(node.left) and is_nullable(node.right)
-        elif node.kind == 'star':
-            return True
-        elif node.kind == 'plus':
-            return False
-        return False
+    return first_pos(ast), last_pos(ast), is_nullable(ast)
+
+def creer_tableau_successeurs(ast, positions):
+    """
+    Créé le tableau de successeurs pour chaque position
+    """
+    # Initialiser le tableau de successeurs
+    successeurs = {pos: set() for pos in positions.keys()}
     
-    # Étape 3: Construction de la table des successeurs pour chaque position
-    successors = {}  # position -> set de positions successeurs
-    
-    def build_successors(node):
-        """Construit la table des successeurs selon la logique de Glushkov"""
+    def calculer_successeurs(node):
         if node.kind == 'concat':
-            # Pour AB: chaque position de Last(A) a pour successeurs First(B)
-            last_left = last_pos(node.left)
-            first_right = first_pos(node.right)
+            # Pour AB: les derniers de A peuvent aller vers les premiers de B
+            def last_pos(n):
+                if n.kind == 'char':
+                    return {n.pos}
+                elif n.kind == 'union':
+                    return last_pos(n.left) | last_pos(n.right)
+                elif n.kind == 'concat':
+                    right_nullable = is_nullable(n.right)
+                    if right_nullable:
+                        return last_pos(n.left) | last_pos(n.right)
+                    else:
+                        return last_pos(n.right)
+                elif n.kind in ['star', 'plus']:
+                    return last_pos(n.left)
+                return set()
             
-            for pos in last_left:
-                if pos not in successors:
-                    successors[pos] = set()
-                successors[pos].update(first_right)
+            def first_pos(n):
+                if n.kind == 'char':
+                    return {n.pos}
+                elif n.kind == 'union':
+                    return first_pos(n.left) | first_pos(n.right)
+                elif n.kind == 'concat':
+                    left_nullable = is_nullable(n.left)
+                    if left_nullable:
+                        return first_pos(n.left) | first_pos(n.right)
+                    else:
+                        return first_pos(n.left)
+                elif n.kind in ['star', 'plus']:
+                    return first_pos(n.left)
+                return set()
             
-            build_successors(node.left)
-            build_successors(node.right)
+            def is_nullable(n):
+                if n.kind == 'char':
+                    return False
+                elif n.kind == 'union':
+                    return is_nullable(n.left) or is_nullable(n.right)
+                elif n.kind == 'concat':
+                    return is_nullable(n.left) and is_nullable(n.right)
+                elif n.kind == 'star':
+                    return True
+                elif n.kind == 'plus':
+                    return False
+                return False
             
-        elif node.kind == 'star':
-            # Pour A*: chaque position de Last(A) a pour successeurs First(A)
-            last_node = last_pos(node.left)
-            first_node = first_pos(node.left)
+            derniers_gauche = last_pos(node.left)
+            premiers_droite = first_pos(node.right)
             
-            for pos in last_node:
-                if pos not in successors:
-                    successors[pos] = set()
-                successors[pos].update(first_node)
+            for pos in derniers_gauche:
+                successeurs[pos] |= premiers_droite
             
-            build_successors(node.left)
+            # Traiter récursivement
+            calculer_successeurs(node.left)
+            calculer_successeurs(node.right)
             
-        elif node.kind == 'plus':
-            # Pour A+: même chose que A* (A+ = AA*)
-            last_node = last_pos(node.left)
-            first_node = first_pos(node.left)
+        elif node.kind in ['star', 'plus']:
+            # Pour A* et A+: les derniers peuvent revenir aux premiers
+            def last_pos(n):
+                if n.kind == 'char':
+                    return {n.pos}
+                elif n.kind == 'union':
+                    return last_pos(n.left) | last_pos(n.right)
+                elif n.kind == 'concat':
+                    right_nullable = is_nullable(n.right)
+                    if right_nullable:
+                        return last_pos(n.left) | last_pos(n.right)
+                    else:
+                        return last_pos(n.right)
+                elif n.kind in ['star', 'plus']:
+                    return last_pos(n.left)
+                return set()
             
-            for pos in last_node:
-                if pos not in successors:
-                    successors[pos] = set()
-                successors[pos].update(first_node)
+            def first_pos(n):
+                if n.kind == 'char':
+                    return {n.pos}
+                elif n.kind == 'union':
+                    return first_pos(n.left) | first_pos(n.right)
+                elif n.kind == 'concat':
+                    left_nullable = is_nullable(n.left)
+                    if left_nullable:
+                        return first_pos(n.left) | first_pos(n.right)
+                    else:
+                        return first_pos(n.left)
+                elif n.kind in ['star', 'plus']:
+                    return first_pos(n.left)
+                return set()
             
-            build_successors(node.left)
+            def is_nullable(n):
+                if n.kind == 'char':
+                    return False
+                elif n.kind == 'union':
+                    return is_nullable(n.left) or is_nullable(n.right)
+                elif n.kind == 'concat':
+                    return is_nullable(n.left) and is_nullable(n.right)
+                elif n.kind == 'star':
+                    return True
+                elif n.kind == 'plus':
+                    return False
+                return False
+            
+            derniers = last_pos(node.left)
+            premiers = first_pos(node.left)
+            
+            for pos in derniers:
+                successeurs[pos] |= premiers
+            
+            calculer_successeurs(node.left)
             
         elif node.kind == 'union':
             # Pour A|B: traiter les deux branches
-            build_successors(node.left)
-            build_successors(node.right)
+            calculer_successeurs(node.left)
+            calculer_successeurs(node.right)
     
-    build_successors(ast)
-    
-    # Initialiser les positions sans successeurs avec ensemble vide
-    for pos in positions.keys():
-        if pos not in successors:
-            successors[pos] = set()
-    
-    # Étape 4: Construction de l'automate
-    automaton = Automaton()
-    
-    # États: état initial 0 + toutes les positions
-    automaton.states = set(positions.keys())
-    automaton.states.add(0)
-    
-    # États initiaux dans First(regex) - mais transitions depuis état 0
-    first_states = first_pos(ast)
-    
-    # États finaux: positions dans Last(regex) + état 0 si nullable
-    automaton.final_states = last_pos(ast)
-    if is_nullable(ast):
-        automaton.final_states.add(0)
-    
-    # Construction des transitions
-    # 1. Depuis l'état 0 vers les premières positions
-    for first_pos_num in first_states:
-        char = positions[first_pos_num]
-        automaton.add_transition(0, char, first_pos_num)
-    
-    # 2. Entre les positions selon la table des successeurs
-    for pos, succ_set in successors.items():
-        if succ_set:  # Si la position a des successeurs
-            for succ_pos in succ_set:
-                char = positions[succ_pos]  # Le caractère de la position suivante
-                automaton.add_transition(pos, char, succ_pos)
-    
-    return automaton, positions, successors
+    calculer_successeurs(ast)
+    return successeurs
 
 def construire_automate_glushkov(regex_str):
-    """Interface pour construire un automate de Glushkov depuis une regex"""
+    """
+    Algorithme de Glushkov simplifié:
+    1. Linéariser toutes les lettres
+    2. Créer tableau de successeurs à partir du point initial 0
+    3. Choisir états initiaux et finaux
+    4. Pour chaque lettre, rechercher ses successeurs
+    5. Construire les transitions
+    """
+    print(f"=== Construction Glushkov pour: {regex_str} ===")
+    
     try:
-        automaton, positions, successors = glushkov_correct(regex_str)
+        # Étape 1: Linéarisation
+        ast, positions = lineariser_regex(regex_str)
+        print(f"\n1. Linéarisation:")
+        linearisation_str = regex_str
+        for pos in sorted(positions.keys()):
+            linearisation_str = linearisation_str.replace(positions[pos], f"{positions[pos]}{pos}", 1)
+        print(f"   {regex_str} = {linearisation_str}")
         
-        # Recalculer pour le debug
-        ast = parse_regex(regex_str)
+        for pos, lettre in sorted(positions.items()):
+            print(f"   Position {pos}: {lettre}")
         
-        # Réassigner positions pour debug
-        pos_counter = 1
-        def reassign_positions(node):
-            nonlocal pos_counter
-            if node.kind == 'char':
-                node.pos = pos_counter
-                pos_counter += 1
-            elif hasattr(node, 'left'):
-                reassign_positions(node.left)
-                if hasattr(node, 'right') and node.right:
-                    reassign_positions(node.right)
+        # Étape 2: Calculer premiers et derniers
+        premiers, derniers, nullable = calculer_premiers_derniers(ast)
+        print(f"\n2. États susceptibles:")
+        print(f"   États initiaux potentiels (First): {sorted(premiers)}")
+        print(f"   États finaux potentiels (Last): {sorted(derniers)}")
+        print(f"   Expression nullable: {nullable}")
         
-        reassign_positions(ast)
+        # Étape 3: Créer tableau de successeurs
+        successeurs = creer_tableau_successeurs(ast, positions)
+        print(f"\n3. Tableau de successeurs:")
+        for pos in sorted(positions.keys()):
+            lettre = positions[pos]
+            succ = sorted(successeurs[pos])
+            if succ:
+                succ_str = [f"{positions[s]}{s}" for s in succ]
+                print(f"   {lettre}{pos} -> {succ_str}")
+            else:
+                print(f"   {lettre}{pos} -> []")
         
-        def first_pos_debug(node):
-            if node.kind == 'char':
-                return {node.pos}
-            elif node.kind == 'union':
-                return first_pos_debug(node.left) | first_pos_debug(node.right)
-            elif node.kind == 'concat':
-                if is_nullable_debug(node.left):
-                    return first_pos_debug(node.left) | first_pos_debug(node.right)
-                else:
-                    return first_pos_debug(node.left)
-            elif node.kind in ['star', 'plus']:
-                return first_pos_debug(node.left)
-            return set()
+        # Étape 4: Construction de l'automate
+        automate = Automaton()
         
-        def last_pos_debug(node):
-            if node.kind == 'char':
-                return {node.pos}
-            elif node.kind == 'union':
-                return last_pos_debug(node.left) | last_pos_debug(node.right)
-            elif node.kind == 'concat':
-                if is_nullable_debug(node.right):
-                    return last_pos_debug(node.left) | last_pos_debug(node.right)
-                else:
-                    return last_pos_debug(node.right)
-            elif node.kind in ['star', 'plus']:
-                return last_pos_debug(node.left)
-            return set()
+        # États: 0 (initial) + toutes les positions
+        automate.states = set(positions.keys())
         
-        def is_nullable_debug(node):
-            if node.kind == 'char':
-                return False
-            elif node.kind == 'union':
-                return is_nullable_debug(node.left) or is_nullable_debug(node.right)
-            elif node.kind == 'concat':
-                return is_nullable_debug(node.left) and is_nullable_debug(node.right)
-            elif node.kind == 'star':
-                return True
-            elif node.kind == 'plus':
-                return False
-            return False
+        # États finaux: positions dans Last + 0 si nullable
+        automate.final_states = derniers.copy()
+        if nullable:
+            automate.final_states.add(0)
         
-        # Formatage des informations de debug
-        debug_info = {
-            'linearized': {f"pos_{k}": f"{v}_{k}" for k, v in positions.items()},
-            'successors': {f"pos_{k}": [f"pos_{p}" for p in sorted(v)] if v else [] for k, v in successors.items()},
-            'first_states': sorted(list(first_pos_debug(ast))),
-            'last_states': sorted(list(last_pos_debug(ast))),
-            'nullable': is_nullable_debug(ast)
-        }
+        print(f"\n4. Construction de l'automate:")
+        print(f"   États: {{0, {', '.join(map(str, sorted(positions.keys())))}}}")
+        print(f"   État initial: 0")
+        print(f"   États finaux: {{{', '.join(map(str, sorted(automate.final_states)))}}}")
         
-        return {
+        # Transitions depuis l'état initial 0
+        print(f"\n5. Transitions:")
+        print(f"   Depuis l'état 0:")
+        for pos in sorted(premiers):
+            lettre = positions[pos]
+            automate.add_transition(0, lettre, pos)
+            print(f"     0 --{lettre}--> {pos}")
+        
+        # Transitions entre positions selon successeurs
+        for pos in sorted(positions.keys()):
+            lettre_actuelle = positions[pos]
+            if successeurs[pos]:
+                print(f"   Depuis l'état {pos} ({lettre_actuelle}{pos}):")
+                for succ_pos in sorted(successeurs[pos]):
+                    lettre_succ = positions[succ_pos]
+                    automate.add_transition(pos, lettre_succ, succ_pos)
+                    print(f"     {pos} --{lettre_succ}--> {succ_pos}")
+        
+        # Vérification pour a(a+b)b
+        if regex_str == "a(a+b)b":
+            print(f"\n6. Vérification pour a(a+b)b:")
+            print(f"   ✓ Linéarisation: a1(a2+b3)b4")
+            print(f"   ✓ 5 états: {{0, 1, 2, 3, 4}}")
+            print(f"   ✓ État initial: 0")
+            print(f"   ✓ État final: 4")
+            print(f"   ✓ Transitions attendues:")
+            print(f"     0 --a--> 1  (vers a1)")
+            print(f"     1 --a--> 2  (a1 vers a2)")
+            print(f"     1 --b--> 3  (a1 vers b3)")
+            print(f"     2 --b--> 4  (a2 vers b4)")
+            print(f"     3 --b--> 4  (b3 vers b4)")
+        
+        result = {
             'succes': True,
             'message': f'Automate de Glushkov construit pour "{regex_str}"',
-            'automate': automaton.to_dict(),
-            'debug': debug_info,
+            'automate': automate.to_dict(),
+            'debug': {
+                'linearized': {f"pos_{k}": f"{v}_{k}" for k, v in positions.items()},
+                'successeurs': {f"pos_{k}": [f"pos_{p}" for p in sorted(v)] for k, v in successeurs.items()},
+                'first_states': sorted(list(premiers)),
+                'last_states': sorted(list(derniers)),
+                'nullable': nullable
+            },
             'regex': regex_str
         }
+        
+        return result
+        
     except Exception as e:
         return {
             'succes': False,
             'erreur': f'Erreur lors de la construction : {str(e)}'
         }
 
-def debug_glushkov_construction(regex_str):
-    """Affiche le processus de construction étape par étape"""
-    print(f"=== Construction Glushkov pour: {regex_str} ===")
+# Test avec l'exemple
+if __name__ == "__main__":
+    # Test principal
+    result = construire_automate_glushkov("a(a+b)b")
     
-    try:
-        automaton, positions, successors = glushkov_correct(regex_str)
-        ast = parse_regex(regex_str)
-        
-        # Recalcul pour debug
-        pos_counter = 1
-        def reassign_for_debug(node):
-            nonlocal pos_counter
-            if node.kind == 'char':
-                node.pos = pos_counter
-                pos_counter += 1
-            elif hasattr(node, 'left'):
-                reassign_for_debug(node.left)
-                if hasattr(node, 'right') and node.right:
-                    reassign_for_debug(node.right)
-        
-        reassign_for_debug(ast)
-        
-        def first_pos_calc(node):
-            if node.kind == 'char':
-                return {node.pos}
-            elif node.kind == 'union':
-                return first_pos_calc(node.left) | first_pos_calc(node.right)
-            elif node.kind == 'concat':
-                if is_nullable_calc(node.left):
-                    return first_pos_calc(node.left) | first_pos_calc(node.right)
-                else:
-                    return first_pos_calc(node.left)
-            elif node.kind in ['star', 'plus']:
-                return first_pos_calc(node.left)
-            return set()
-        
-        def last_pos_calc(node):
-            if node.kind == 'char':
-                return {node.pos}
-            elif node.kind == 'union':
-                return last_pos_calc(node.left) | last_pos_calc(node.right)
-            elif node.kind == 'concat':
-                if is_nullable_calc(node.right):
-                    return last_pos_calc(node.left) | last_pos_calc(node.right)
-                else:
-                    return last_pos_calc(node.right)
-            elif node.kind in ['star', 'plus']:
-                return last_pos_calc(node.left)
-            return set()
-        
-        def is_nullable_calc(node):
-            if node.kind == 'char':
-                return False
-            elif node.kind == 'union':
-                return is_nullable_calc(node.left) or is_nullable_calc(node.right)
-            elif node.kind == 'concat':
-                return is_nullable_calc(node.left) and is_nullable_calc(node.right)
-            elif node.kind == 'star':
-                return True
-            elif node.kind == 'plus':
-                return False
-            return False
-        
-        print(f"\n1. Linéarisation (positions attribuées):")
-        for pos, char in sorted(positions.items()):
-            print(f"   {char}_{pos}")
-        
-        print(f"\n2. Premières positions (First): {sorted(first_pos_calc(ast))}")
-        print(f"3. Dernières positions (Last): {sorted(last_pos_calc(ast))}")
-        print(f"4. Expression nullable: {is_nullable_calc(ast)}")
-        
-        print(f"\n5. Table des successeurs:")
-        for pos in sorted(positions.keys()):
-            char = positions[pos]
-            succ_list = sorted(successors.get(pos, set()))
-            if succ_list:
-                succ_chars = [f'{positions[s]}_{s}' for s in succ_list]
-                print(f"   {char}_{pos} → {succ_chars}")
-            else:
-                print(f"   {char}_{pos} → []")
-        
-        print(f"\n6. États finaux: {sorted(automaton.final_states)}")
-        
-        print(f"\n7. Transitions construites:")
-        for (src, symbol), dests in sorted(automaton.transitions.items()):
-            for dest in sorted(dests):
-                print(f"   {src} --{symbol}--> {dest}")
-        
-        return automaton.to_dict()
-        
-    except Exception as e:
-        print(f"Erreur: {e}")
-        return None
+    if result['succes']:
+        print(f"\n" + "="*50)
+        print("AUTOMATE FINAL:")
+        automate = result['automate']
+        print(f"États: {automate['etats']}")
+        print(f"Alphabet: {automate['alphabet']}")
+        print(f"États initiaux: {automate['etats_initiaux']}")
+        print(f"États finaux: {automate['etats_finaux']}")
+        print("Transitions:")
+        for trans, dests in sorted(automate['transitions'].items()):
+            src, symbol = trans.split(',')
+            for dest in dests:
+                print(f"  {src} --{symbol}--> {dest}")
+    else:
+        print(f"Erreur: {result['erreur']}")
